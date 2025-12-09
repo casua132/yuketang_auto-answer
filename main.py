@@ -182,7 +182,17 @@ def main(page: ft.Page):
     # We'll set opacity to 0 instead of visible=False if needed, but let's try visible first.
     # Actually, let's keep it visible but tiny.
     wakelock_video.visible = True
-    wakelock_video.opacity = 0
+    wakelock_video.opacity = 0.01 # Non-zero opacity to ensure it's "visible" to the system
+
+    # Audio control for better backgrounding support
+    wakelock_audio = ft.Audio(
+        src="keep_alive.mp4", # Reuse the video file as audio source if it contains audio track, or just as a placeholder
+        autoplay=False,
+        volume=0,
+        balance=0,
+        release_mode=ft.AudioReleaseMode.LOOP,
+    )
+    page.overlay.append(wakelock_audio)
 
     def toggle_active(e):
         if ctx.is_active:
@@ -191,6 +201,7 @@ def main(page: ft.Page):
             active_btn.text = "启动"
             active_btn.disabled = False # In original it disables then enables. 
             wakelock_video.pause()
+            wakelock_audio.pause()
             add_log("停止监听")
         else:
             # Start
@@ -199,6 +210,7 @@ def main(page: ft.Page):
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
             wakelock_video.play()
+            wakelock_audio.play()
             add_log("启动监听 (已启用屏幕常亮)")
         page.update()
 
