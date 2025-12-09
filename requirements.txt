@@ -1,0 +1,4 @@
+flet
+requests
+websocket-client
+python-dotenv
