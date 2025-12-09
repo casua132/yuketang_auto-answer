@@ -185,12 +185,14 @@ def main(page: ft.Page):
     wakelock_video.opacity = 0.01 # Non-zero opacity to ensure it's "visible" to the system
 
     # Audio control for better backgrounding support
+    # Note: ft.Audio is deprecated in recent versions but still available.
+    # Using string "loop" for release_mode as the Enum might not be available in all versions or imports.
     wakelock_audio = ft.Audio(
-        src="keep_alive.mp4", # Reuse the video file as audio source if it contains audio track, or just as a placeholder
+        src="keep_alive.mp4",
         autoplay=False,
         volume=0,
         balance=0,
-        release_mode=ft.AudioReleaseMode.LOOP,
+        release_mode="loop",
     )
     page.overlay.append(wakelock_audio)
 
