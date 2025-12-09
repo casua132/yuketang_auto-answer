@@ -1,4 +1,6 @@
 import flet as ft
+import flet_audio as ft_audio
+import flet_video as ft_video
 import threading
 import json
 import time
@@ -162,9 +164,9 @@ def main(page: ft.Page):
     
     # Video control for Wakelock (Keep Screen On)
     # We play a dummy video when monitoring is active to prevent screen sleep
-    wakelock_video = ft.Video(
-        playlist=[ft.VideoMedia("keep_alive.mp4")],
-        playlist_mode=ft.PlaylistMode.LOOP,
+    wakelock_video = ft_video.Video(
+        playlist=[ft_video.VideoMedia("keep_alive.mp4")],
+        playlist_mode=ft_video.PlaylistMode.LOOP,
         fill_color=ft.Colors.TRANSPARENT,
         aspect_ratio=1,
         volume=0,
@@ -185,14 +187,12 @@ def main(page: ft.Page):
     wakelock_video.opacity = 0.01 # Non-zero opacity to ensure it's "visible" to the system
 
     # Audio control for better backgrounding support
-    # Note: ft.Audio is deprecated in recent versions but still available.
-    # Using string "loop" for release_mode as the Enum might not be available in all versions or imports.
-    wakelock_audio = ft.Audio(
-        src="keep_alive.mp4",
+    wakelock_audio = ft_audio.Audio(
+        src="silence.mp3",
         autoplay=False,
         volume=0,
         balance=0,
-        release_mode="loop",
+        release_mode=ft_audio.AudioReleaseMode.LOOP,
     )
     page.overlay.append(wakelock_audio)
 
