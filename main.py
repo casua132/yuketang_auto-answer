@@ -192,7 +192,7 @@ def main(page: ft.Page):
         autoplay=False,
         volume=0,
         balance=0,
-        release_mode=ft_audio.AudioReleaseMode.LOOP,
+        release_mode="loop",
     )
     page.overlay.append(wakelock_audio)
 
