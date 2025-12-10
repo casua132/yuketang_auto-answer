@@ -1,4 +1,6 @@
 import flet as ft
+import flet_audio as ft_audio
+import flet_video as ft_video
 import threading
 import json
 import time
@@ -162,9 +164,9 @@ def main(page: ft.Page):
     
     # Video control for Wakelock (Keep Screen On)
     # We play a dummy video when monitoring is active to prevent screen sleep
-    wakelock_video = ft.Video(
-        playlist=[ft.VideoMedia("keep_alive.mp4")],
-        playlist_mode=ft.PlaylistMode.LOOP,
+    wakelock_video = ft_video.Video(
+        playlist=[ft_video.VideoMedia("keep_alive.mp4")],
+        playlist_mode=ft_video.PlaylistMode.LOOP,
         fill_color=ft.Colors.TRANSPARENT,
         aspect_ratio=1,
         volume=0,
@@ -182,7 +184,17 @@ def main(page: ft.Page):
     # We'll set opacity to 0 instead of visible=False if needed, but let's try visible first.
     # Actually, let's keep it visible but tiny.
     wakelock_video.visible = True
-    wakelock_video.opacity = 0
+    wakelock_video.opacity = 0.01 # Non-zero opacity to ensure it's "visible" to the system
+
+    # Audio control for better backgrounding support
+    wakelock_audio = ft_audio.Audio(
+        src="silence.mp3",
+        autoplay=False,
+        volume=0,
+        balance=0,
+        release_mode="loop",
+    )
+    page.overlay.append(wakelock_audio)
 
     def toggle_active(e):
         if ctx.is_active:
@@ -191,6 +203,7 @@ def main(page: ft.Page):
             active_btn.text = "启动"
             active_btn.disabled = False # In original it disables then enables. 
             wakelock_video.pause()
+            wakelock_audio.pause()
             add_log("停止监听")
         else:
             # Start
@@ -199,6 +212,7 @@ def main(page: ft.Page):
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
             wakelock_video.play()
+            wakelock_audio.play()
             add_log("启动监听 (已启用屏幕常亮)")
         page.update()
 

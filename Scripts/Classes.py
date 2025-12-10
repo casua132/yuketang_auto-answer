@@ -365,6 +365,15 @@ class User:
 def answer_through_gemini(promble):
     """
     """
+    global client
+    if client is None:
+        api_key = os.environ.get("DOUBAO_API_KEY")
+        if api_key:
+            get_client(api_key)
+        else:
+            print("No API Key found in environment variables.")
+            return None
+
     print("Begin to deal with problems")
     print(promble)
     print('\n')
@@ -439,17 +448,21 @@ def answer_through_gemini(promble):
                     }
                 ]
         
-        response = client.models.completions.create(
-            model=model,
-            messages=messages,
-            extra_body={
-                "thinking": {
-                    "type": "disabled"  # 不使用深度思考能力
-                    # "type": "enabled" # 使用深度思考能力
-                    # "type": "auto" # 模型自行判断是否使用深度思考能力
-                }
-            },
-        )
+        try:
+            response = client.models.completions.create(
+                model=model,
+                messages=messages,
+                extra_body={
+                    "thinking": {
+                        "type": "disabled"  # 不使用深度思考能力
+                        # "type": "enabled" # 使用深度思考能力
+                        # "type": "auto" # 模型自行判断是否使用深度思考能力
+                    }
+                },
+            )
+        except Exception as e:
+            print(f"AI Request Failed: {e}")
+            return None
     else:
         if options:
             if problemType == 1:
@@ -486,17 +499,21 @@ def answer_through_gemini(promble):
                     }
                 ]
         
-        response = client.models.completions.create(
-            model=model,
-            messages=messages,
-            extra_body={
-                "thinking": {
-                    "type": "disabled"  # 不使用深度思考能力
-                    # "type": "enabled" # 使用深度思考能力
-                    # "type": "auto" # 模型自行判断是否使用深度思考能力
-                }
-            },
-        )
+        try:
+            response = client.models.completions.create(
+                model=model,
+                messages=messages,
+                extra_body={
+                    "thinking": {
+                        "type": "disabled"  # 不使用深度思考能力
+                        # "type": "enabled" # 使用深度思考能力
+                        # "type": "auto" # 模型自行判断是否使用深度思考能力
+                    }
+                },
+            )
+        except Exception as e:
+            print(f"AI Request Failed: {e}")
+            return None
 
     if response.choices[0].message.content == "Image Missing":
         return None

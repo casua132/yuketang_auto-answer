@@ -2,3 +2,5 @@ flet
 requests
 websocket-client
 python-dotenv
+flet-audio
+flet-video
