@@ -1,5 +1,9 @@
 # Rain Classroom Assistant (Android Version)
 
+This project is a modified version of [TrickyDeath/RainClassroomAssitant](https://github.com/TrickyDeath/RainClassroomAssitant). Since the original project does not have a license, this repository is for personal study and backup purposes only. All rights of the core logic belong to the original author.
+
+# Project Description
+
 This is an Android-compatible version of the Rain Classroom Assistant. It uses [Flet](https://flet.dev/) for the UI and can be run on Android devices.
 
 ## How to Run
