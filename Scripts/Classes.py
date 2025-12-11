@@ -317,10 +317,12 @@ class Lesson:
         # We will modify add_course to accept lessonid in the list or handle it.
         # Actually, let's just use lessonid for deletion.
         self.add_course([self.lessonname,title,teacher,time_str,self.lessonid],index)
-        self.wsapp = websocket.WebSocketApp(url=wss_url,header=self.headers,on_open=self.on_open,on_message=self.on_message)
 
         while self.main_ui.is_active and not self.lesson_finished:
+             # Re-create WebSocketApp instance for each connection attempt to ensure clean state
+             self.wsapp = websocket.WebSocketApp(url=wss_url,header=self.headers,on_open=self.on_open,on_message=self.on_message)
              self.wsapp.run_forever(ping_interval=10, ping_timeout=5)
+
              # If it exits but not finished and still active, wait a bit and reconnect
              if self.main_ui.is_active and not self.lesson_finished:
                  meg = "%s连接断开，尝试重连..." % self.lessonname
