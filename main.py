@@ -40,7 +40,9 @@ def main(page: ft.Page):
     )
     
     # Login Dialog Elements
-    qr_image = ft.Image(src_base64=None, width=200, height=200)
+    # Use a transparent 1x1 pixel as placeholder to avoid "must have src" error
+    TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    qr_image = ft.Image(src_base64=TRANSPARENT_PIXEL_B64, width=200, height=200)
     login_status_text = ft.Text("")
     
     # Config Dialog Elements
@@ -221,7 +223,7 @@ def main(page: ft.Page):
     
     # Login Logic
     def show_login_dialog(e=None):
-        qr_image.src_base64 = ""
+        qr_image.src_base64 = TRANSPARENT_PIXEL_B64
         login_status_text.value = "正在获取二维码..."
         
         def close_login(e):
