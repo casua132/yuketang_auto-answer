@@ -15,8 +15,9 @@ def main(page: ft.Page):
     page.title = "Rain Classroom Assistant"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
-    page.window_width = 400
-    page.window_height = 800
+    if not page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
+        page.window_width = 400
+        page.window_height = 800
     
     # Context setup
     ctx = AppContext(page)
@@ -324,12 +325,27 @@ def main(page: ft.Page):
     # Config Dialog
     def show_config_dialog(e):
         
+        # Load answer config
+        answer_config = ctx.config.get("answer_config", {}).get("answer_delay", {"type": 1, "custom": {"time": 0}})
+
         def save_config(e):
             ctx.config["auto_danmu"] = cb_auto_danmu.value
             ctx.config["auto_answer"] = cb_auto_answer.value
             ctx.config["audio_on"] = cb_audio_on.value
             ctx.config["doubao_api_key"] = tb_api_key.value
             
+            # Save answer delay config
+            if "answer_config" not in ctx.config:
+                ctx.config["answer_config"] = {"answer_delay": {}}
+
+            delay_type = int(rg_delay_type.value)
+            custom_time = int(tb_custom_time.value) if tb_custom_time.value and tb_custom_time.value.isdigit() else 0
+
+            ctx.config["answer_config"]["answer_delay"] = {
+                "type": delay_type,
+                "custom": {"time": custom_time}
+            }
+
             # Update env var for immediate use
             if tb_api_key.value:
                 os.environ["DOUBAO_API_KEY"] = tb_api_key.value
@@ -344,12 +360,33 @@ def main(page: ft.Page):
             config_dialog.open = False
             page.update()
 
+        def on_delay_type_change(e):
+            tb_custom_time.disabled = rg_delay_type.value != "2"
+            page.update()
+
         cb_auto_danmu = ft.Checkbox(label="自动发弹幕", value=ctx.config.get("auto_danmu", True))
         cb_auto_answer = ft.Checkbox(label="自动答题", value=ctx.config.get("auto_answer", True))
         cb_audio_on = ft.Checkbox(label="语音提醒 (暂不可用)", value=ctx.config.get("audio_on", True))
         
         tb_api_key = ft.TextField(label="Doubao API Key", value=ctx.config.get("doubao_api_key", ""), password=True, can_reveal_password=True)
+
+        # Answer Delay Controls
+        rg_delay_type = ft.RadioGroup(
+            content=ft.Column([
+                ft.Radio(value="1", label="随机时间提交 (剩余时间15s以上随机5-limit-10)"),
+                ft.Radio(value="2", label="自定义时间提交 (秒)")
+            ]),
+            value=str(answer_config.get("type", 1)),
+            on_change=on_delay_type_change
+        )
         
+        tb_custom_time = ft.TextField(
+            label="延时时间 (秒)",
+            value=str(answer_config.get("custom", {}).get("time", 0)),
+            disabled=rg_delay_type.value != "2",
+            keyboard_type=ft.KeyboardType.NUMBER
+        )
+
         config_dialog = ft.AlertDialog(
             title=ft.Text("配置"),
             content=ft.Column([
@@ -357,8 +394,12 @@ def main(page: ft.Page):
                 cb_auto_answer,
                 cb_audio_on,
                 tb_api_key,
+                ft.Divider(),
+                ft.Text("答题延时设置:", weight=ft.FontWeight.BOLD),
+                rg_delay_type,
+                tb_custom_time,
                 ft.Text("更多配置请直接修改 config.json", size=10, color=ft.Colors.GREY)
-            ], tight=True),
+            ], tight=True, scroll=ft.ScrollMode.AUTO, height=400), # Allow scrolling if content is too long
             actions=[
                 ft.TextButton("取消", on_click=close_config),
                 ft.TextButton("保存", on_click=save_config)
@@ -383,33 +424,34 @@ def main(page: ft.Page):
     )
 
     page.add(
-        ft.Container(
-            content=ft.Column(
-                [
-                    header,
-                    ft.Text("⚠️ 注意：本应用将在运行时保持屏幕常亮。", size=12, color=ft.Colors.BLUE),
-                    ft.Text("监听列表:", size=16),
-                    ft.Container(
-                        content=course_table,
-                        border=ft.border.all(1, ft.Colors.GREY_300),
-                        border_radius=5,
-                        height=200,
-                        # scroll=ft.ScrollMode.ADAPTIVE
-                    ),
-                    ft.Text("信息:", size=16),
-                    ft.Container(
-                        content=log_list_view,
-                        border=ft.border.all(1, ft.Colors.GREY_300),
-                        border_radius=5,
-                        expand=True,
-                        padding=5,
-                        bgcolor=ft.Colors.GREY_100
-                    ),
-                    wakelock_video
-                ]
-            ),
-            padding=10,
-            expand=True
+        ft.SafeArea(
+            ft.Container(
+                content=ft.Column(
+                    [
+                        header,
+                        ft.Text("⚠️ 注意：本应用将在运行时保持屏幕常亮。", size=12, color=ft.Colors.BLUE),
+                        ft.Text("监听列表:", size=16),
+                        ft.Container(
+                            content=ft.Column([course_table], scroll=ft.ScrollMode.ADAPTIVE),
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=5,
+                            height=200,
+                        ),
+                        ft.Text("信息:", size=16),
+                        ft.Container(
+                            content=log_list_view,
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=5,
+                            expand=True,
+                            padding=5,
+                            bgcolor=ft.Colors.GREY_100
+                        ),
+                        wakelock_video
+                    ]
+                ),
+                padding=10,
+                expand=True
+            )
         )
     )
 
