@@ -379,7 +379,7 @@ def main(page: ft.Page):
             value=str(answer_config.get("type", 1)),
             on_change=on_delay_type_change
         )
-        
+
         tb_custom_time = ft.TextField(
             label="延时时间 (秒)",
             value=str(answer_config.get("custom", {}).get("time", 0)),
@@ -399,7 +399,7 @@ def main(page: ft.Page):
                 rg_delay_type,
                 tb_custom_time,
                 ft.Text("更多配置请直接修改 config.json", size=10, color=ft.Colors.GREY)
-            ], tight=True, scroll=ft.ScrollMode.AUTO, height=400), # Allow scrolling if content is too long
+            ], tight=True, scroll=ft.ScrollMode.AUTO, height=400),
             actions=[
                 ft.TextButton("取消", on_click=close_config),
                 ft.TextButton("保存", on_click=save_config)
