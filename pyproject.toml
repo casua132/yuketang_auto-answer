@@ -15,4 +15,4 @@ dependencies = [
 ]
 
 [tool.flet]
-android_permissions = ["INTERNET", "WAKE_LOCK"]
+android_permissions = ["INTERNET", "WAKE_LOCK", "FOREGROUND_SERVICE"]
