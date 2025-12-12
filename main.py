@@ -187,13 +187,14 @@ def main(page: ft.Page):
     # We'll set opacity to 0 instead of visible=False if needed, but let's try visible first.
     # Actually, let's keep it visible but tiny.
     wakelock_video.visible = True
-    wakelock_video.opacity = 0.01 # Non-zero opacity to ensure it's "visible" to the system
+    wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
 
     # Audio control for better backgrounding support
+    # Volume set to minimal non-zero value because some Android versions pause 0-volume streams
     wakelock_audio = ft_audio.Audio(
         src="silence.mp3",
         autoplay=False,
-        volume=0,
+        volume=0.01,
         balance=0,
         release_mode="loop",
     )

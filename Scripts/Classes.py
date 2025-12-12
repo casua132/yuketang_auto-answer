@@ -321,7 +321,7 @@ class Lesson:
         while self.main_ui.is_active and not self.lesson_finished:
              # Re-create WebSocketApp instance for each connection attempt to ensure clean state
              self.wsapp = websocket.WebSocketApp(url=wss_url,header=self.headers,on_open=self.on_open,on_message=self.on_message)
-             self.wsapp.run_forever(ping_interval=10, ping_timeout=5)
+             self.wsapp.run_forever(ping_interval=30, ping_timeout=10)
 
              # If it exits but not finished and still active, wait a bit and reconnect
              if self.main_ui.is_active and not self.lesson_finished:
