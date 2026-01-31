@@ -52,4 +52,4 @@ Currently, you may need to add it to a `.env` file in the working directory or m
 
 ## Credits
 
-Based on the original RainClassroomAssistant_doubao project.
+Based on the original RainClassroomAssistant project.
