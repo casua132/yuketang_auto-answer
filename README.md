@@ -8,15 +8,15 @@ This is an Android-compatible version of the Rain Classroom Assistant. It uses [
 
 ## How to Run
 
-### Method 1: Using Flet App on Android (Development)
+~~### Method 1: Using Flet App on Android (Development)~~
 
-1.  Install the **Flet** app from the Google Play Store (or App Store on iOS, though this is tailored for Android).
-2.  Ensure your Android device and PC are on the same network.
-3.  Run the server on your PC:
+~~1.  Install the **Flet** app from the Google Play Store (or App Store on iOS, though this is tailored for Android).~~
+~~2.  Ensure your Android device and PC are on the same network.~~
+~~3.  Run the server on your PC:~~
     ```bash
     flet run android_app/main.py --port 8550
     ```
-4.  Open the Flet app on Android and enter the URL shown in your terminal (usually `http://<your-pc-ip>:8550`).
+~~4.  Open the Flet app on Android and enter the URL shown in your terminal (usually `http://<your-pc-ip>:8550`).~~
 
 ### Method 2: Build APK (Distribution)
 
