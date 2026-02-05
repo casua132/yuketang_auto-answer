@@ -37,8 +37,6 @@ To build a standalone APK, you need to install `flet` and set up the Flutter env
 -   **Mobile UI**: Redesigned interface for touch screens.
 -   **Login**: Scan QR code to login via WeChat (same as desktop version).
 -   **Auto-Answer**: Automatically answers questions using AI (requires API Key).
--   **Auto-Danmu**: Sends bullet comments automatically.
--   **Monitoring**: Monitors active classes and performs actions.
 
 ## Configuration
 
