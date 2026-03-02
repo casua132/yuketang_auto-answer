@@ -423,7 +423,8 @@ def main(page: ft.Page):
             login_btn,
             config_btn
         ],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        wrap=True
     )
 
     page.add(
@@ -450,11 +451,13 @@ def main(page: ft.Page):
                             bgcolor=ft.Colors.GREY_100
                         ),
                         wakelock_video
-                    ]
+                    ],
+                    expand=True
                 ),
                 padding=10,
                 expand=True
-            )
+            ),
+            expand=True
         )
     )
 
