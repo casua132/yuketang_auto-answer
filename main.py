@@ -418,50 +418,45 @@ def main(page: ft.Page):
     header = ft.Row(
         [
             ft.Text("摸鱼课堂 Mobile", size=20, weight=ft.FontWeight.BOLD),
+            ft.Container(expand=True),
             active_btn,
             login_btn,
             config_btn
         ],
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        wrap=True
-    )
-
-    # Wrap everything in a primary column that is explicitly expanded
-    # and allows nested expanding elements correctly in Flet 0.81.0 mobile.
-
-    main_layout = ft.Column(
-        [
-            header,
-            ft.Text("⚠️ 注意：本应用将在运行时保持屏幕常亮。", size=12, color=ft.Colors.BLUE),
-            ft.Text("监听列表:", size=16),
-            ft.Container(
-                content=ft.Column([course_table], scroll=ft.ScrollMode.ADAPTIVE),
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=5,
-                height=200,
-            ),
-            ft.Text("信息:", size=16),
-            ft.Container(
-                content=log_list_view,
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=5,
-                expand=True,
-                padding=5,
-                bgcolor=ft.Colors.GREY_100
-            ),
-            wakelock_video
-        ],
-        expand=True
+        scroll=ft.ScrollMode.ADAPTIVE
     )
 
     page.add(
         ft.SafeArea(
             ft.Container(
-                content=main_layout,
+                content=ft.Column(
+                    [
+                        header,
+                        ft.Text("⚠️ 注意：本应用将在运行时保持屏幕常亮。", size=12, color=ft.Colors.BLUE),
+                        ft.Text("监听列表:", size=16),
+                        ft.Container(
+                            content=ft.Column([course_table], scroll=ft.ScrollMode.ADAPTIVE),
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=5,
+                            height=200,
+                        ),
+                        ft.Text("信息:", size=16),
+                        ft.Container(
+                            content=log_list_view,
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=5,
+                            expand=True,
+                            padding=5,
+                            bgcolor=ft.Colors.GREY_100
+                        ),
+                        wakelock_video
+                    ],
+                    expand=True
+                ),
                 padding=10,
                 expand=True
-            ),
-            # Removing `expand=True` on SafeArea to prevent flutter white screen crashes on mobile
+            )
         )
     )
 
