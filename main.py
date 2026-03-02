@@ -418,7 +418,6 @@ def main(page: ft.Page):
     header = ft.Row(
         [
             ft.Text("摸鱼课堂 Mobile", size=20, weight=ft.FontWeight.BOLD),
-            ft.Container(expand=True),
             active_btn,
             login_btn,
             config_btn
