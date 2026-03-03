@@ -32,8 +32,8 @@ def _main_logic(page: ft.Page):
     page.scroll = ft.ScrollMode.ADAPTIVE
 
     if not page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-        page.window_width = 400
-        page.window_height = 800
+        page.window.width = 400
+        page.window.height = 800
     
     # Context setup
     ctx = AppContext(page)
@@ -453,14 +453,14 @@ def _main_logic(page: ft.Page):
                         ft.Text("监听列表:", size=16),
                         ft.Container(
                             content=ft.Column([course_table], scroll=ft.ScrollMode.ADAPTIVE),
-                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border=ft.Border(top=ft.BorderSide(1, ft.Colors.GREY_300), bottom=ft.BorderSide(1, ft.Colors.GREY_300), left=ft.BorderSide(1, ft.Colors.GREY_300), right=ft.BorderSide(1, ft.Colors.GREY_300)),
                             border_radius=5,
                             height=200,
                         ),
                         ft.Text("信息:", size=16),
                         ft.Container(
                             content=log_list_view,
-                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border=ft.Border(top=ft.BorderSide(1, ft.Colors.GREY_300), bottom=ft.BorderSide(1, ft.Colors.GREY_300), left=ft.BorderSide(1, ft.Colors.GREY_300), right=ft.BorderSide(1, ft.Colors.GREY_300)),
                             border_radius=5,
                             height=400, # Strict height instead of expand=True to avoid Flutter crash
                             padding=5,
