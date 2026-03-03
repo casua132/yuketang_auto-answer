@@ -243,9 +243,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "flet", specifier = ">=0.28.0" },
-    { name = "flet-audio", specifier = ">=0.1.0" },
-    { name = "flet-video", specifier = ">=0.1.1" },
+    { name = "flet", specifier = "==0.81.0" },
+    { name = "flet-audio", specifier = "==0.81.0" },
+    { name = "flet-video", specifier = "==0.81.0" },
     { name = "python-dotenv" },
     { name = "requests" },
     { name = "websocket-client" },

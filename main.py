@@ -1,6 +1,4 @@
 import flet as ft
-import flet_audio as ft_audio
-import flet_video as ft_video
 import threading
 import json
 import time
@@ -60,8 +58,8 @@ def _main_logic(page: ft.Page):
     
     # Login Dialog Elements
     # Use a transparent 1x1 pixel as placeholder to avoid "must have src" error
-    TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-    qr_image = ft.Image(src_base64=TRANSPARENT_PIXEL_B64, width=200, height=200)
+    TRANSPARENT_PIXEL_B64 = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    qr_image = ft.Image(src=TRANSPARENT_PIXEL_B64, width=200, height=200)
     login_status_text = ft.Text("")
     
     # Config Dialog Elements
@@ -243,7 +241,7 @@ def _main_logic(page: ft.Page):
     
     # Login Logic
     def show_login_dialog(e=None):
-        qr_image.src_base64 = TRANSPARENT_PIXEL_B64
+        qr_image.src = TRANSPARENT_PIXEL_B64
         login_status_text.value = "正在获取二维码..."
         
         def close_login(e):
@@ -285,7 +283,7 @@ def _main_logic(page: ft.Page):
                     import base64
                     img_resp = requests.get(url=data["ticket"], proxies={"http": None,"https":None})
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
-                    qr_image.src_base64 = b64_img
+                    qr_image.src = f"data:image/png;base64,{b64_img}"
                     login_status_text.value = "请扫码"
                     page.update()
                 except Exception as ex:
