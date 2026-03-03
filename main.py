@@ -1,4 +1,6 @@
 import flet as ft
+import flet_audio as ft_audio
+import flet_video as ft_video
 import threading
 import json
 import time
