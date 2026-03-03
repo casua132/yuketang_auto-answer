@@ -27,7 +27,7 @@ def main(page: ft.Page):
     log_messages = []
     
     # UI Elements
-    log_list_view = ft.ListView(spacing=10, auto_scroll=True)
+    log_list_view = ft.ListView(expand=True, spacing=10, auto_scroll=True)
     
     course_table = ft.DataTable(
         columns=[
@@ -415,11 +415,10 @@ def main(page: ft.Page):
     config_btn = ft.ElevatedButton("配置", on_click=show_config_dialog)
 
     # Layout
-    page.scroll = ft.ScrollMode.ADAPTIVE
-
     header = ft.Row(
         [
             ft.Text("摸鱼课堂 Mobile", size=20, weight=ft.FontWeight.BOLD),
+            ft.Container(expand=True),
             active_btn,
             login_btn,
             config_btn
@@ -447,14 +446,16 @@ def main(page: ft.Page):
                             content=log_list_view,
                             border=ft.border.all(1, ft.Colors.GREY_300),
                             border_radius=5,
-                            height=300,
+                            expand=True,
                             padding=5,
                             bgcolor=ft.Colors.GREY_100
                         ),
                         wakelock_video
-                    ]
+                    ],
+                    expand=True
                 ),
-                padding=10
+                padding=10,
+                expand=True
             )
         )
     )
