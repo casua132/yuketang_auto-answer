@@ -32,10 +32,6 @@ def _main_logic(page: ft.Page):
     page.padding = 0
     # Apply global scrolling so absolute heights don't get cut off on small screens
     page.scroll = ft.ScrollMode.ADAPTIVE
-
-    if not page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-        page.window.width = 400
-        page.window.height = 800
     
     # Context setup
     ctx = AppContext(page)
@@ -122,15 +118,21 @@ def _main_logic(page: ft.Page):
     
     # Helper to load config
     def load_config():
-        # Try loading from client_storage (Persistent on Android)
+        # Try loading from client_storage / shared_preferences (Persistent on Android)
         try:
-            if page.client_storage.contains_key("config"):
-                data = page.client_storage.get("config")
-                add_log("配置已从本地存储加载")
-                # Merge with default in case of new fields
-                default_data = get_initial_data()
-                default_data.update(data)
-                return default_data
+            # Support both older Flet and 0.81.0 Flet storage systems
+            storage_manager = getattr(page, "client_storage", getattr(page, "shared_preferences", None))
+            if storage_manager:
+                if hasattr(storage_manager, "contains_key") and storage_manager.contains_key("config"):
+                    data = storage_manager.get("config")
+                    add_log("配置已从本地存储加载")
+                    # Merge with default in case of new fields
+                    default_data = get_initial_data()
+                    # Some storage APIs return stringified JSON
+                    if isinstance(data, str):
+                        data = json.loads(data)
+                    default_data.update(data)
+                    return default_data
         except Exception as e:
             add_log(f"本地存储读取失败: {e}")
 
@@ -158,9 +160,13 @@ def _main_logic(page: ft.Page):
         return data
 
     def save_config_data(config):
-        # Save to client_storage
+        # Save to storage manager
         try:
-            page.client_storage.set("config", config)
+            storage_manager = getattr(page, "client_storage", getattr(page, "shared_preferences", None))
+            if storage_manager:
+                # Ensure we save as string if complex
+                if hasattr(storage_manager, "set"):
+                    storage_manager.set("config", json.dumps(config) if isinstance(config, dict) else config)
         except Exception as e:
             add_log(f"保存配置到本地存储失败: {e}")
             
@@ -208,17 +214,6 @@ def _main_logic(page: ft.Page):
     wakelock_video.visible = True
     wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
 
-    # Audio control for better backgrounding support
-    # Volume set to minimal non-zero value because some Android versions pause 0-volume streams
-    wakelock_audio = ft_audio.Audio(
-        src="silence.mp3",
-        autoplay=False,
-        volume=0.01,
-        balance=0,
-        release_mode=ft_audio.ReleaseMode.LOOP,
-    )
-    page.overlay.append(wakelock_audio)
-
     def toggle_active(e):
         if ctx.is_active:
             # Stop
@@ -226,7 +221,6 @@ def _main_logic(page: ft.Page):
             active_btn.text = "启动"
             active_btn.disabled = False # In original it disables then enables. 
             wakelock_video.pause()
-            wakelock_audio.pause()
             add_log("停止监听")
         else:
             # Start
@@ -235,7 +229,6 @@ def _main_logic(page: ft.Page):
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
             wakelock_video.play()
-            wakelock_audio.play()
             add_log("启动监听 (已启用屏幕常亮)")
         page.update()
 
@@ -287,6 +280,7 @@ def _main_logic(page: ft.Page):
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
                     qr_image.src = f"data:image/png;base64,{b64_img}"
                     login_status_text.value = "请扫码"
+                    qr_image.update()
                     page.update()
                 except Exception as ex:
                     print(ex)
