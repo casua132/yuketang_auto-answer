@@ -59,7 +59,7 @@ def _main_logic(page: ft.Page):
     TRANSPARENT_PIXEL_B64 = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     qr_container = ft.Container(
         content=ft.Image(src=TRANSPARENT_PIXEL_B64, width=200, height=200),
-        width=200, height=200, alignment=ft.alignment.center
+        width=200, height=200, alignment=ft.alignment.CENTER
     )
     login_status_text = ft.Text("")
     
@@ -170,37 +170,12 @@ def _main_logic(page: ft.Page):
     # Monitor Thread
     monitor_thread = None
     
-    # Video control for Wakelock (Keep Screen On)
-    # We play a dummy video when monitoring is active to prevent screen sleep
-    wakelock_video = ft_video.Video(
-        playlist=[ft_video.VideoMedia("keep_alive.mp4")],
-        playlist_mode=ft_video.PlaylistMode.LOOP,
-        fill_color=ft.Colors.TRANSPARENT,
-        aspect_ratio=1,
-        volume=0,
-        autoplay=False,
-        filter_quality=ft.FilterQuality.NONE,
-        muted=True,
-        wakelock=True,
-        pause_upon_entering_background_mode=False,
-        width=1,
-        height=1,
-        visible=False # Initially invisible, though visibility might affect playing on some platforms
-    )
-    # Note: Flet Video might need to be visible to play? 
-    # Usually visibility=False stops rendering.
-    # We'll set opacity to 0 instead of visible=False if needed, but let's try visible first.
-    # Actually, let's keep it visible but tiny.
-    wakelock_video.visible = True
-    wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
-
     def toggle_active(e):
         if ctx.is_active:
             # Stop
             ctx.is_active = False
             active_btn.text = "启动"
-            active_btn.disabled = False # In original it disables then enables. 
-            wakelock_video.pause()
+            active_btn.disabled = False # In original it disables then enables.
             add_log("停止监听")
         else:
             # Start
@@ -208,8 +183,10 @@ def _main_logic(page: ft.Page):
             active_btn.text = "停止监听"
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
-            wakelock_video.play()
-            add_log("启动监听 (已启用屏幕常亮)")
+            add_log("启动监听")
+
+        # Explicitly update the button directly to ensure the UI paints immediately
+        active_btn.update()
         page.update()
 
     active_btn = ft.ElevatedButton("启动", on_click=toggle_active)
@@ -261,17 +238,18 @@ def _main_logic(page: ft.Page):
                     # Replace the entire Image control to force Flutter to dump the cached render paint
                     qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
                     login_status_text.value = "请扫码"
-                    # Explicitly update the specific controls in the dialog hierarchy
-                    # to push changes immediately from the backend thread.
+                    # Explicitly update the global page to push changes immediately
+                    # from the background python thread to the modal layer.
                     qr_container.update()
                     login_status_text.update()
-                    dialog.update()
+                    page.update()
                 except Exception as ex:
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
                 login_status_text.value = "扫码成功，正在登录..."
                 login_status_text.update()
+                page.update()
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
                 login_data = {
@@ -445,8 +423,7 @@ def _main_logic(page: ft.Page):
                             height=400, # Strict height instead of expand=True to avoid Flutter crash
                             padding=5,
                             bgcolor=ft.Colors.GREY_100
-                        ),
-                        wakelock_video
+                        )
                     ]
                 ),
                 padding=10
@@ -463,4 +440,4 @@ def _main_logic(page: ft.Page):
         
     add_log("初始化完成")
 
-ft.app(main, assets_dir="assets")
+ft.run(main, assets_dir="assets")
