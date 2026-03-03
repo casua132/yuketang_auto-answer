@@ -6,9 +6,9 @@ authors = [
     {name = "Your Name", email = "your.email@example.com"},
 ]
 dependencies = [
-    "flet==0.28.3",
-    "flet-audio==0.2.2",
-    "flet-video==0.1.2",
+    "flet>=0.28.0",
+    "flet-audio>=0.1.0",
+    "flet-video>=0.1.1",
     "requests",
     "websocket-client",
     "python-dotenv",

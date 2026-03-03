@@ -196,7 +196,7 @@ def main(page: ft.Page):
         autoplay=False,
         volume=0.01,
         balance=0,
-        release_mode="loop",
+        release_mode=ft_audio.ReleaseMode.LOOP,
     )
     page.overlay.append(wakelock_audio)
 
@@ -418,7 +418,6 @@ def main(page: ft.Page):
     header = ft.Row(
         [
             ft.Text("摸鱼课堂 Mobile", size=20, weight=ft.FontWeight.BOLD),
-            ft.Container(expand=True),
             active_btn,
             login_btn,
             config_btn
@@ -456,7 +455,8 @@ def main(page: ft.Page):
                 ),
                 padding=10,
                 expand=True
-            )
+            ),
+            expand=True
         )
     )
 
@@ -468,4 +468,4 @@ def main(page: ft.Page):
         
     add_log("初始化完成")
 
-ft.app(target=main, assets_dir="assets")
+ft.app(main, assets_dir="assets")
