@@ -118,25 +118,8 @@ def _main_logic(page: ft.Page):
     
     # Helper to load config
     def load_config():
-        # Try loading from client_storage / shared_preferences (Persistent on Android)
-        try:
-            # Support both older Flet and 0.81.0 Flet storage systems
-            storage_manager = getattr(page, "client_storage", getattr(page, "shared_preferences", None))
-            if storage_manager:
-                if hasattr(storage_manager, "contains_key") and storage_manager.contains_key("config"):
-                    data = storage_manager.get("config")
-                    add_log("配置已从本地存储加载")
-                    # Merge with default in case of new fields
-                    default_data = get_initial_data()
-                    # Some storage APIs return stringified JSON
-                    if isinstance(data, str):
-                        data = json.loads(data)
-                    default_data.update(data)
-                    return default_data
-        except Exception as e:
-            add_log(f"本地存储读取失败: {e}")
-
-        # Fallback to file-based config (Legacy or Desktop)
+        # Flet 0.81.0 storage manager APIs often return async coroutines which break pure synchronous flows.
+        # We rely exclusively on standard file I/O which natively resolves to the Android app sandbox safely.
         dir_route = get_config_dir()
         config_route = get_config_path()
         
@@ -150,27 +133,21 @@ def _main_logic(page: ft.Page):
             try:
                 with open(config_route, "r") as f:
                     data = json.load(f)
-                add_log("配置文件已读取 (File)")
-                return data
-            except:
-                pass
+                add_log("配置已从本地文件加载")
+
+                # Merge with default in case of new fields
+                default_data = get_initial_data()
+                default_data.update(data)
+                return default_data
+            except Exception as e:
+                add_log(f"本地配置文件读取失败: {e}")
         
         data = get_initial_data()
         add_log("使用默认配置")
         return data
 
     def save_config_data(config):
-        # Save to storage manager
-        try:
-            storage_manager = getattr(page, "client_storage", getattr(page, "shared_preferences", None))
-            if storage_manager:
-                # Ensure we save as string if complex
-                if hasattr(storage_manager, "set"):
-                    storage_manager.set("config", json.dumps(config) if isinstance(config, dict) else config)
-        except Exception as e:
-            add_log(f"保存配置到本地存储失败: {e}")
-            
-        # Also save to file as backup
+        # Save explicitly to native file storage.
         try:
             dir_route = get_config_dir()
             config_route = get_config_path()
@@ -178,8 +155,8 @@ def _main_logic(page: ft.Page):
                 os.makedirs(dir_route)
             with open(config_route, "w+") as f:
                 json.dump(config, f)
-        except Exception:
-            pass
+        except Exception as e:
+            add_log(f"保存配置到本地文件失败: {e}")
 
     ctx.config = load_config()
     
@@ -280,14 +257,17 @@ def _main_logic(page: ft.Page):
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
                     qr_image.src = f"data:image/png;base64,{b64_img}"
                     login_status_text.value = "请扫码"
+                    # Explicitly update the specific controls in the dialog hierarchy
+                    # to push changes immediately from the backend thread.
                     qr_image.update()
-                    page.update()
+                    login_status_text.update()
+                    dialog.update()
                 except Exception as ex:
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
                 login_status_text.value = "扫码成功，正在登录..."
-                page.update()
+                login_status_text.update()
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
                 login_data = {
