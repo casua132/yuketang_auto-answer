@@ -1,6 +1,6 @@
-flet
+flet==0.81.0
 requests
 websocket-client
 python-dotenv
-flet-audio
-flet-video
+flet-audio==0.81.0
+flet-video==0.81.0

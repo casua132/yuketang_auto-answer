@@ -12,9 +12,27 @@ from Scripts.Utils import get_config_path, get_config_dir, get_initial_data, get
 from Scripts.Monitor import monitor
 
 def main(page: ft.Page):
+    try:
+        _main_logic(page)
+    except Exception as e:
+        import traceback
+        err_msg = f"Fatal Error: {str(e)}\n{traceback.format_exc()}"
+        print(err_msg)
+        page.scroll = ft.ScrollMode.ADAPTIVE
+        page.add(
+            ft.SafeArea(
+                ft.Text(err_msg, color=ft.Colors.RED, selectable=True)
+            )
+        )
+        page.update()
+
+def _main_logic(page: ft.Page):
     page.title = "Rain Classroom Assistant"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
+    # Apply global scrolling so absolute heights don't get cut off on small screens
+    page.scroll = ft.ScrollMode.ADAPTIVE
+
     if not page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
         page.window_width = 400
         page.window_height = 800
@@ -27,7 +45,8 @@ def main(page: ft.Page):
     log_messages = []
     
     # UI Elements
-    log_list_view = ft.ListView(expand=True, spacing=10, auto_scroll=True)
+    # Remove expand=True here to prevent infinite BoxConstraints in adaptive page
+    log_list_view = ft.ListView(spacing=10, auto_scroll=True)
     
     course_table = ft.DataTable(
         columns=[
@@ -445,18 +464,16 @@ def main(page: ft.Page):
                             content=log_list_view,
                             border=ft.border.all(1, ft.Colors.GREY_300),
                             border_radius=5,
-                            expand=True,
+                            height=400, # Strict height instead of expand=True to avoid Flutter crash
                             padding=5,
                             bgcolor=ft.Colors.GREY_100
                         ),
                         wakelock_video
-                    ],
-                    expand=True
+                    ]
                 ),
-                padding=10,
-                expand=True
-            ),
-            expand=True
+                padding=10
+                # Removing all expand=True from parent containers to prevent bounds errors
+            )
         )
     )
 
