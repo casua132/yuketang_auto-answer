@@ -57,7 +57,10 @@ def _main_logic(page: ft.Page):
     # Login Dialog Elements
     # Use a transparent 1x1 pixel as placeholder to avoid "must have src" error
     TRANSPARENT_PIXEL_B64 = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-    qr_image = ft.Image(src=TRANSPARENT_PIXEL_B64, width=200, height=200)
+    qr_container = ft.Container(
+        content=ft.Image(src=TRANSPARENT_PIXEL_B64, width=200, height=200),
+        width=200, height=200, alignment=ft.alignment.center
+    )
     login_status_text = ft.Text("")
     
     # Config Dialog Elements
@@ -213,7 +216,7 @@ def _main_logic(page: ft.Page):
     
     # Login Logic
     def show_login_dialog(e=None):
-        qr_image.src = TRANSPARENT_PIXEL_B64
+        qr_container.content = ft.Image(src=TRANSPARENT_PIXEL_B64, width=200, height=200)
         login_status_text.value = "正在获取二维码..."
         
         def close_login(e):
@@ -224,7 +227,7 @@ def _main_logic(page: ft.Page):
         login_dialog = ft.AlertDialog(
             title=ft.Text("微信扫码登录"),
             content=ft.Column([
-                qr_image,
+                qr_container,
                 login_status_text
             ], tight=True, alignment=ft.MainAxisAlignment.CENTER),
             actions=[
@@ -255,11 +258,12 @@ def _main_logic(page: ft.Page):
                     import base64
                     img_resp = requests.get(url=data["ticket"], proxies={"http": None,"https":None})
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
-                    qr_image.src = f"data:image/png;base64,{b64_img}"
+                    # Replace the entire Image control to force Flutter to dump the cached render paint
+                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
                     login_status_text.value = "请扫码"
                     # Explicitly update the specific controls in the dialog hierarchy
                     # to push changes immediately from the backend thread.
-                    qr_image.update()
+                    qr_container.update()
                     login_status_text.update()
                     dialog.update()
                 except Exception as ex:
