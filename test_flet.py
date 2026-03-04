@@ -1,26 +1,10 @@
 import flet as ft
-def main(page: ft.Page):
-    try:
-        page.scroll = ft.ScrollMode.ADAPTIVE
-        page.add(
-            ft.SafeArea(
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.Row([ft.Text("Hello"), ft.ElevatedButton("Btn")], scroll=ft.ScrollMode.ADAPTIVE),
-                            ft.Text("Log:"),
-                            ft.Container(
-                                content=ft.ListView(spacing=10, auto_scroll=True),
-                                height=400,
-                                bgcolor=ft.Colors.GREY_100
-                            )
-                        ]
-                    ),
-                    padding=10
-                )
-            )
-        )
-        print("Success rendering layout")
-    except Exception as e:
-        page.add(ft.Text(f"CRASH: {e}", color=ft.Colors.RED))
-ft.app(main)
+print("Has ButtonVariant:", hasattr(ft, "ButtonVariant"))
+print("Has Button:", hasattr(ft, "Button"))
+print("Has ElevatedButton:", hasattr(ft, "ElevatedButton"))
+print("Has alignment.center:", hasattr(ft.alignment, "center"))
+print("Has alignment.CENTER:", hasattr(ft.alignment, "CENTER"))
+print("Has Alignment:", hasattr(ft, "Alignment"))
+if hasattr(ft, "Alignment"):
+    print("Has Alignment.center:", hasattr(ft.Alignment, "center"))
+    print("Has Alignment.CENTER:", hasattr(ft.Alignment, "CENTER"))

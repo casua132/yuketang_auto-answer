@@ -59,7 +59,7 @@ def _main_logic(page: ft.Page):
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     qr_container = ft.Container(
         content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
-        width=200, height=200, alignment=ft.alignment.center
+        width=200, height=200, alignment=ft.alignment.Alignment(0, 0)
     )
     login_status_text = ft.Text("")
     
@@ -216,7 +216,7 @@ def _main_logic(page: ft.Page):
         active_btn.update()
         page.update()
 
-    active_btn = ft.Button(text="启动", variant=ft.ButtonVariant.ELEVATED, on_click=toggle_active)
+    active_btn = ft.ElevatedButton("启动", on_click=toggle_active)
     
     # Login Logic
     def show_login_dialog(e=None):
@@ -336,7 +336,7 @@ def _main_logic(page: ft.Page):
             login_btn.text = "登录"
             return False
 
-    login_btn = ft.Button(text="登录", variant=ft.ButtonVariant.ELEVATED, on_click=show_login_dialog)
+    login_btn = ft.ElevatedButton("登录", on_click=show_login_dialog)
     
     # Config Dialog
     def show_config_dialog(e):
@@ -425,7 +425,7 @@ def _main_logic(page: ft.Page):
         config_dialog.open = True
         page.update()
 
-    config_btn = ft.Button(text="配置", variant=ft.ButtonVariant.ELEVATED, on_click=show_config_dialog)
+    config_btn = ft.ElevatedButton("配置", on_click=show_config_dialog)
 
     # Layout
     header = ft.Row(
