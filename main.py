@@ -272,36 +272,37 @@ def _main_logic(page: ft.Page):
                     try:
                         img_resp = requests.get(url=data["ticket"], timeout=10)
                     except requests.exceptions.RequestException as e:
-                        login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
-                        login_status_text.update()
-                        login_dialog_ref.update()
-                        page.update()
+                        def _update_net_err():
+                            login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
+                            page.update()
+                        page.run_task(_update_net_err)
                         print(f"QR Download Error: {e}")
                         return
 
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
 
-                    # Force Flet engine repaint by replacing the image component directly
-                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
-                    login_status_text.value = "请扫码"
+                    def _update_ui():
+                        # Modify the Image src directly to prevent unmounting the widget tree
+                        qr_container.content.src = f"data:image/png;base64,{b64_img}"
+                        login_status_text.value = "请扫码"
+                        # Updating the page from a dedicated Flet task forces the Flutter engine to sync
+                        # the visual frame, solving the bug where background threads freeze UI overlays.
+                        page.update()
 
-                    # Explicitly update the layout hierarchy up to the overlay dialog to invalidate the render box
-                    qr_container.update()
-                    login_status_text.update()
-                    login_dialog_ref.update()
-                    page.update()
+                    # Push the update onto Flet's async event loop to guarantee repainting
+                    page.run_task(_update_ui)
                 except Exception as ex:
-                    login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
-                    login_status_text.update()
-                    login_dialog_ref.update()
-                    page.update()
+                    def _update_err():
+                        login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
+                        page.update()
+                    page.run_task(_update_err)
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
-                login_status_text.value = "扫码成功，正在登录..."
-                login_status_text.update()
-                login_dialog_ref.update()
-                page.update()
+                def _update_success():
+                    login_status_text.value = "扫码成功，正在登录..."
+                    page.update()
+                page.run_task(_update_success)
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
                 login_data = {
