@@ -282,7 +282,7 @@ def _main_logic(page: ft.Page):
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
 
                     # Force Flet engine repaint by replacing the image component directly
-                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200, alignment=ft.Alignment.CENTER)
+                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
                     login_status_text.value = "请扫码"
 
                     # Explicitly update the layout hierarchy up to the overlay dialog to invalidate the render box
