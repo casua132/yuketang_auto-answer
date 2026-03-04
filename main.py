@@ -12,12 +12,26 @@ from Scripts.Utils import get_config_path, get_config_dir, get_initial_data, get
 from Scripts.Monitor import monitor
 
 def main(page: ft.Page):
+    try:
+        _main_logic(page)
+    except Exception as e:
+        import traceback
+        err_msg = f"Fatal Error: {str(e)}\n{traceback.format_exc()}"
+        print(err_msg)
+        page.scroll = ft.ScrollMode.ADAPTIVE
+        page.add(
+            ft.SafeArea(
+                ft.Text(err_msg, color=ft.Colors.RED, selectable=True)
+            )
+        )
+        page.update()
+
+def _main_logic(page: ft.Page):
     page.title = "Rain Classroom Assistant"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
-    if not page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-        page.window_width = 400
-        page.window_height = 800
+    # Apply global scrolling so absolute heights don't get cut off on small screens
+    page.scroll = ft.ScrollMode.ADAPTIVE
     
     # Context setup
     ctx = AppContext(page)
@@ -27,7 +41,8 @@ def main(page: ft.Page):
     log_messages = []
     
     # UI Elements
-    log_list_view = ft.ListView(expand=True, spacing=10, auto_scroll=True)
+    # Remove expand=True here to prevent infinite BoxConstraints in adaptive page
+    log_list_view = ft.ListView(spacing=10, auto_scroll=True)
     
     course_table = ft.DataTable(
         columns=[
@@ -42,7 +57,10 @@ def main(page: ft.Page):
     # Login Dialog Elements
     # Use a transparent 1x1 pixel as placeholder to avoid "must have src" error
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-    qr_image = ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200)
+    qr_container = ft.Container(
+        content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
+        width=200, height=200, alignment=ft.alignment.CENTER
+    )
     login_status_text = ft.Text("")
     
     # Config Dialog Elements
@@ -103,19 +121,16 @@ def main(page: ft.Page):
     
     # Helper to load config
     def load_config():
-        # Try loading from client_storage (Persistent on Android)
         try:
             if page.client_storage.contains_key("config"):
                 data = page.client_storage.get("config")
                 add_log("配置已从本地存储加载")
-                # Merge with default in case of new fields
                 default_data = get_initial_data()
                 default_data.update(data)
                 return default_data
         except Exception as e:
             add_log(f"本地存储读取失败: {e}")
 
-        # Fallback to file-based config (Legacy or Desktop)
         dir_route = get_config_dir()
         config_route = get_config_path()
         
@@ -129,23 +144,26 @@ def main(page: ft.Page):
             try:
                 with open(config_route, "r") as f:
                     data = json.load(f)
-                add_log("配置文件已读取 (File)")
-                return data
-            except:
-                pass
+                add_log("配置已从本地文件加载")
+
+                # Merge with default in case of new fields
+                default_data = get_initial_data()
+                default_data.update(data)
+                return default_data
+            except Exception as e:
+                add_log(f"本地配置文件读取失败: {e}")
         
         data = get_initial_data()
         add_log("使用默认配置")
         return data
 
     def save_config_data(config):
-        # Save to client_storage
         try:
             page.client_storage.set("config", config)
         except Exception as e:
             add_log(f"保存配置到本地存储失败: {e}")
-            
-        # Also save to file as backup
+
+        # Save explicitly to native file storage.
         try:
             dir_route = get_config_dir()
             config_route = get_config_path()
@@ -153,8 +171,8 @@ def main(page: ft.Page):
                 os.makedirs(dir_route)
             with open(config_route, "w+") as f:
                 json.dump(config, f)
-        except Exception:
-            pass
+        except Exception as e:
+            add_log(f"保存配置到本地文件失败: {e}")
 
     ctx.config = load_config()
     
@@ -180,21 +198,16 @@ def main(page: ft.Page):
         pause_upon_entering_background_mode=False,
         width=1,
         height=1,
-        visible=False # Initially invisible, though visibility might affect playing on some platforms
+        visible=True,
+        opacity=0.05
     )
-    # Note: Flet Video might need to be visible to play? 
-    # Usually visibility=False stops rendering.
-    # We'll set opacity to 0 instead of visible=False if needed, but let's try visible first.
-    # Actually, let's keep it visible but tiny.
-    wakelock_video.visible = True
-    wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
 
     def toggle_active(e):
         if ctx.is_active:
             # Stop
             ctx.is_active = False
             active_btn.text = "启动"
-            active_btn.disabled = False # In original it disables then enables. 
+            active_btn.disabled = False # In original it disables then enables.
             wakelock_video.pause()
             add_log("停止监听")
         else:
@@ -205,6 +218,8 @@ def main(page: ft.Page):
             monitor_thread.start()
             wakelock_video.play()
             add_log("启动监听 (已启用屏幕常亮)")
+
+        # Explicitly update the button directly to ensure the UI paints immediately
         active_btn.update()
         page.update()
 
@@ -212,8 +227,7 @@ def main(page: ft.Page):
     
     # Login Logic
     def show_login_dialog(e=None):
-        qr_image.src = f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}"
-        qr_image.update()
+        qr_container.content = ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200)
         login_status_text.value = "正在获取二维码..."
         
         def close_login(e):
@@ -224,7 +238,7 @@ def main(page: ft.Page):
         login_dialog = ft.AlertDialog(
             title=ft.Text("微信扫码登录"),
             content=ft.Column([
-                qr_image,
+                qr_container,
                 login_status_text
             ], tight=True, alignment=ft.MainAxisAlignment.CENTER),
             actions=[
@@ -255,15 +269,20 @@ def main(page: ft.Page):
                     import base64
                     img_resp = requests.get(url=data["ticket"], proxies={"http": None,"https":None})
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
-                    qr_image.src = f"data:image/png;base64,{b64_img}"
-                    qr_image.update()
+                    # Replace the entire Image control to force Flutter to dump the cached render paint
+                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
                     login_status_text.value = "请扫码"
+                    # Explicitly update the global page to push changes immediately
+                    # from the background python thread to the modal layer.
+                    qr_container.update()
+                    login_status_text.update()
                     page.update()
                 except Exception as ex:
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
                 login_status_text.value = "扫码成功，正在登录..."
+                login_status_text.update()
                 page.update()
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
@@ -408,12 +427,12 @@ def main(page: ft.Page):
     header = ft.Row(
         [
             ft.Text("摸鱼课堂 Mobile", size=20, weight=ft.FontWeight.BOLD),
-            ft.Container(expand=True),
             active_btn,
             login_btn,
             config_btn
         ],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        scroll=ft.ScrollMode.ADAPTIVE
     )
 
     page.add(
@@ -426,26 +445,24 @@ def main(page: ft.Page):
                         ft.Text("监听列表:", size=16),
                         ft.Container(
                             content=ft.Column([course_table], scroll=ft.ScrollMode.ADAPTIVE),
-                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border=ft.Border(top=ft.BorderSide(1, ft.Colors.GREY_300), bottom=ft.BorderSide(1, ft.Colors.GREY_300), left=ft.BorderSide(1, ft.Colors.GREY_300), right=ft.BorderSide(1, ft.Colors.GREY_300)),
                             border_radius=5,
                             height=200,
                         ),
                         ft.Text("信息:", size=16),
                         ft.Container(
                             content=log_list_view,
-                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border=ft.Border(top=ft.BorderSide(1, ft.Colors.GREY_300), bottom=ft.BorderSide(1, ft.Colors.GREY_300), left=ft.BorderSide(1, ft.Colors.GREY_300), right=ft.BorderSide(1, ft.Colors.GREY_300)),
                             border_radius=5,
-                            height=250, # using explicit height instead of expand=True inside SafeArea/Container/Column to avoid mobile crash
+                            height=400, # Strict height instead of expand=True to avoid Flutter crash
                             padding=5,
                             bgcolor=ft.Colors.GREY_100
                         ),
                         wakelock_video
-                    ],
-                    scroll=ft.ScrollMode.ADAPTIVE, # Making the whole column scrollable as fallback
-                    expand=True
+                    ]
                 ),
-                padding=10,
-                expand=True
+                padding=10
+                # Removing all expand=True from parent containers to prevent bounds errors
             )
         )
     )
@@ -458,4 +475,4 @@ def main(page: ft.Page):
         
     add_log("初始化完成")
 
-ft.app(target=main, assets_dir="assets")
+ft.app(main, assets_dir="assets")
