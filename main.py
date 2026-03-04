@@ -59,7 +59,7 @@ def _main_logic(page: ft.Page):
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     qr_container = ft.Container(
         content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
-        width=200, height=200, alignment=ft.alignment.CENTER
+        width=200, height=200, alignment=ft.alignment.center
     )
     login_status_text = ft.Text("")
     
@@ -193,7 +193,11 @@ def _main_logic(page: ft.Page):
             ctx.is_active = False
             active_btn.text = "启动"
             active_btn.disabled = False # In original it disables then enables.
-            page.run_task(wakelock_video.pause)
+            if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
+                try:
+                    page.run_task(wakelock_video.pause)
+                except Exception:
+                    pass
             add_log("停止监听")
         else:
             # Start
@@ -201,14 +205,18 @@ def _main_logic(page: ft.Page):
             active_btn.text = "停止监听"
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
-            page.run_task(wakelock_video.play)
+            if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
+                try:
+                    page.run_task(wakelock_video.play)
+                except Exception:
+                    pass
             add_log("启动监听 (已启用屏幕常亮)")
 
         # Explicitly update the button directly to ensure the UI paints immediately
         active_btn.update()
         page.update()
 
-    active_btn = ft.ElevatedButton("启动", on_click=toggle_active)
+    active_btn = ft.Button(text="启动", variant=ft.ButtonVariant.ELEVATED, on_click=toggle_active)
     
     # Login Logic
     def show_login_dialog(e=None):
@@ -252,7 +260,13 @@ def _main_logic(page: ft.Page):
                 # Get QR Code image
                 try:
                     import base64
-                    img_resp = requests.get(url=data["ticket"], proxies={"http": None,"https":None})
+
+                    # Create a session with trust_env=False to completely bypass environment proxy settings
+                    # This prevents "Unable to determine SOCKS version" crashes if the user has socks:// proxies.
+                    s = requests.Session()
+                    s.trust_env = False
+
+                    img_resp = s.get(url=data["ticket"])
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
                     # Replace the entire Image control to force Flutter to dump the cached render paint
                     qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
@@ -322,7 +336,7 @@ def _main_logic(page: ft.Page):
             login_btn.text = "登录"
             return False
 
-    login_btn = ft.ElevatedButton("登录", on_click=show_login_dialog)
+    login_btn = ft.Button(text="登录", variant=ft.ButtonVariant.ELEVATED, on_click=show_login_dialog)
     
     # Config Dialog
     def show_config_dialog(e):
@@ -411,7 +425,7 @@ def _main_logic(page: ft.Page):
         config_dialog.open = True
         page.update()
 
-    config_btn = ft.ElevatedButton("配置", on_click=show_config_dialog)
+    config_btn = ft.Button(text="配置", variant=ft.ButtonVariant.ELEVATED, on_click=show_config_dialog)
 
     # Layout
     header = ft.Row(
