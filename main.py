@@ -42,7 +42,7 @@ def main(page: ft.Page):
     # Login Dialog Elements
     # Use a transparent 1x1 pixel as placeholder to avoid "must have src" error
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-    qr_image = ft.Image(src_base64=TRANSPARENT_PIXEL_B64, width=200, height=200)
+    qr_image = ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200)
     login_status_text = ft.Text("")
     
     # Config Dialog Elements
@@ -189,17 +189,6 @@ def main(page: ft.Page):
     wakelock_video.visible = True
     wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
 
-    # Audio control for better backgrounding support
-    # Volume set to minimal non-zero value because some Android versions pause 0-volume streams
-    wakelock_audio = ft_audio.Audio(
-        src="silence.mp3",
-        autoplay=False,
-        volume=0.01,
-        balance=0,
-        release_mode="loop",
-    )
-    page.overlay.append(wakelock_audio)
-
     def toggle_active(e):
         if ctx.is_active:
             # Stop
@@ -207,7 +196,6 @@ def main(page: ft.Page):
             active_btn.text = "启动"
             active_btn.disabled = False # In original it disables then enables. 
             wakelock_video.pause()
-            wakelock_audio.pause()
             add_log("停止监听")
         else:
             # Start
@@ -216,15 +204,16 @@ def main(page: ft.Page):
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
             wakelock_video.play()
-            wakelock_audio.play()
             add_log("启动监听 (已启用屏幕常亮)")
+        active_btn.update()
         page.update()
 
     active_btn = ft.ElevatedButton("启动", on_click=toggle_active)
     
     # Login Logic
     def show_login_dialog(e=None):
-        qr_image.src_base64 = TRANSPARENT_PIXEL_B64
+        qr_image.src = f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}"
+        qr_image.update()
         login_status_text.value = "正在获取二维码..."
         
         def close_login(e):
@@ -266,7 +255,8 @@ def main(page: ft.Page):
                     import base64
                     img_resp = requests.get(url=data["ticket"], proxies={"http": None,"https":None})
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
-                    qr_image.src_base64 = b64_img
+                    qr_image.src = f"data:image/png;base64,{b64_img}"
+                    qr_image.update()
                     login_status_text.value = "请扫码"
                     page.update()
                 except Exception as ex:
@@ -445,12 +435,14 @@ def main(page: ft.Page):
                             content=log_list_view,
                             border=ft.border.all(1, ft.Colors.GREY_300),
                             border_radius=5,
-                            expand=True,
+                            height=250, # using explicit height instead of expand=True inside SafeArea/Container/Column to avoid mobile crash
                             padding=5,
                             bgcolor=ft.Colors.GREY_100
                         ),
                         wakelock_video
-                    ]
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE, # Making the whole column scrollable as fallback
+                    expand=True
                 ),
                 padding=10,
                 expand=True
