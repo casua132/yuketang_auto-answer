@@ -277,8 +277,8 @@ def _main_logic(page: ft.Page):
                         return
 
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
-                    # Replace the entire Image control to force Flutter to dump the cached render paint
-                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
+                    # Update the existing Image source instead of creating a new component tree.
+                    qr_container.content.src = f"data:image/png;base64,{b64_img}"
                     login_status_text.value = "请扫码"
                     # Explicitly update the global page to push changes immediately
                     # from the background python thread to the modal layer.
@@ -288,6 +288,7 @@ def _main_logic(page: ft.Page):
                 except Exception as ex:
                     login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
                     login_status_text.update()
+                    page.update()
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
