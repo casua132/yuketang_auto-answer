@@ -57,10 +57,7 @@ def _main_logic(page: ft.Page):
     # Login Dialog Elements
     # Use a transparent 1x1 pixel as placeholder to avoid "must have src" error
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-    qr_container = ft.Container(
-        content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
-        width=200, height=200, alignment=ft.Alignment.CENTER
-    )
+    qr_image = ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200)
     login_status_text = ft.Text("")
     
     # Config Dialog Elements
@@ -225,7 +222,7 @@ def _main_logic(page: ft.Page):
     
     # Login Logic
     def show_login_dialog(e=None):
-        qr_container.content = ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200)
+        qr_image.src = f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}"
         login_status_text.value = "正在获取二维码..."
         
         def close_login(e):
@@ -236,7 +233,7 @@ def _main_logic(page: ft.Page):
         login_dialog = ft.AlertDialog(
             title=ft.Text("微信扫码登录"),
             content=ft.Column([
-                qr_container,
+                qr_image,
                 login_status_text
             ], tight=True, alignment=ft.MainAxisAlignment.CENTER),
             actions=[
@@ -281,28 +278,25 @@ def _main_logic(page: ft.Page):
 
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
 
-                    def _update_ui():
-                        # Modify the Image src directly to prevent unmounting the widget tree
-                        qr_container.content.src = f"data:image/png;base64,{b64_img}"
-                        login_status_text.value = "请扫码"
-                        # Updating the page from a dedicated Flet task forces the Flutter engine to sync
-                        # the visual frame, solving the bug where background threads freeze UI overlays.
-                        page.update()
+                    qr_image.src = f"data:image/png;base64,{b64_img}"
+                    login_status_text.value = "请扫码"
 
-                    # Push the update onto Flet's async event loop to guarantee repainting
-                    page.run_task(_update_ui)
+                    # Explicitly update the components to force the engine to repaint the dirty nodes
+                    # login_dialog_ref MUST be updated to invalidate the AlertDialog render box in Flutter.
+                    qr_image.update()
+                    login_status_text.update()
+                    login_dialog_ref.update()
+                    page.update()
                 except Exception as ex:
-                    def _update_err():
-                        login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
-                        page.update()
-                    page.run_task(_update_err)
+                    login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
+                    login_status_text.update()
+                    login_dialog_ref.update()
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
-                def _update_success():
-                    login_status_text.value = "扫码成功，正在登录..."
-                    page.update()
-                page.run_task(_update_success)
+                login_status_text.value = "扫码成功，正在登录..."
+                login_status_text.update()
+                login_dialog_ref.update()
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
                 login_data = {
@@ -348,14 +342,17 @@ def _main_logic(page: ft.Page):
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
             code, user_info = get_user_info(ctx.config["sessionid"])
             if code == 0:
-                login_btn.text = f"已登录: {user_info['name']}"
+                login_btn.content.value = f"已登录: {user_info['name']}"
+                login_btn.update()
                 add_log(f"登录成功，当前用户: {user_info['name']}")
                 return True
             else:
-                login_btn.text = "登录"
+                login_btn.content.value = "登录"
+                login_btn.update()
                 return False
         else:
-            login_btn.text = "登录"
+            login_btn.content.value = "登录"
+            login_btn.update()
             return False
 
     login_btn = ft.Button(content=ft.Text("登录"), on_click=show_login_dialog)
