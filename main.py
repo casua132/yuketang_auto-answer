@@ -59,7 +59,7 @@ def _main_logic(page: ft.Page):
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     qr_container = ft.Container(
         content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
-        width=200, height=200, alignment=ft.alignment.Alignment(0, 0)
+        width=200, height=200, alignment=ft.Alignment.CENTER
     )
     login_status_text = ft.Text("")
     
@@ -192,8 +192,8 @@ def _main_logic(page: ft.Page):
             if ctx.is_active:
                 # Stop
                 ctx.is_active = False
-                active_btn.text = "启动"
-                active_btn.disabled = False # In original it disables then enables.
+                e.control.text = "启动"
+                e.control.disabled = False # In original it disables then enables.
                 if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
                     try:
                         page.run_task(wakelock_video.pause)
@@ -203,7 +203,7 @@ def _main_logic(page: ft.Page):
             else:
                 # Start
                 ctx.is_active = True
-                active_btn.text = "停止监听"
+                e.control.text = "取消监听"
                 monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
                 monitor_thread.start()
                 if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
@@ -213,14 +213,15 @@ def _main_logic(page: ft.Page):
                         pass
                 add_log("启动监听 (已启用屏幕常亮)")
 
-            # Explicitly update the button directly to ensure the UI paints immediately
-            active_btn.update()
+            # Explicitly update the button directly from the event target to ensure the UI paints immediately
+            e.control.update()
             page.update()
         except Exception as ex:
             print(f"Error in toggle_active: {ex}")
             add_log(f"启动/停止失败: {ex}")
 
-    active_btn = ft.ElevatedButton("启动", on_click=toggle_active)
+    # Use the unified Button class in Flet 0.80+ instead of deprecated ElevatedButton
+    active_btn = ft.Button(text="启动", on_click=toggle_active)
     
     # Login Logic
     def show_login_dialog(e=None):
@@ -249,7 +250,7 @@ def _main_logic(page: ft.Page):
         # Start Login Thread
         threading.Thread(target=login_process, args=(login_dialog,), daemon=True).start()
 
-    def login_process(dialog):
+    def login_process(login_dialog_ref):
         # Websocket for Login
         login_wss_url = "wss://www.yuketang.cn/wsapp/"
         ws_app = None
@@ -273,27 +274,33 @@ def _main_logic(page: ft.Page):
                     except requests.exceptions.RequestException as e:
                         login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
                         login_status_text.update()
+                        login_dialog_ref.update()
+                        page.update()
                         print(f"QR Download Error: {e}")
                         return
 
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
-                    # Update the existing Image source instead of creating a new component tree.
-                    qr_container.content.src = f"data:image/png;base64,{b64_img}"
+
+                    # Force Flet engine repaint by replacing the image component directly
+                    qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200, alignment=ft.Alignment.CENTER)
                     login_status_text.value = "请扫码"
-                    # Explicitly update the global page to push changes immediately
-                    # from the background python thread to the modal layer.
+
+                    # Explicitly update the layout hierarchy up to the overlay dialog to invalidate the render box
                     qr_container.update()
                     login_status_text.update()
+                    login_dialog_ref.update()
                     page.update()
                 except Exception as ex:
                     login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
                     login_status_text.update()
+                    login_dialog_ref.update()
                     page.update()
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
                 login_status_text.value = "扫码成功，正在登录..."
                 login_status_text.update()
+                login_dialog_ref.update()
                 page.update()
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
@@ -313,9 +320,11 @@ def _main_logic(page: ft.Page):
                     save_config_data(ctx.config)
                         
                     login_status_text.value = "登录成功！"
+                    login_dialog_ref.update()
                     page.update()
                     time.sleep(1)
-                    dialog.open = False
+                    login_dialog_ref.open = False
+                    login_dialog_ref.update()
                     page.update()
                     ws.close()
                     
@@ -348,7 +357,7 @@ def _main_logic(page: ft.Page):
             login_btn.text = "登录"
             return False
 
-    login_btn = ft.ElevatedButton("登录", on_click=show_login_dialog)
+    login_btn = ft.Button(text="登录", on_click=show_login_dialog)
     
     # Config Dialog
     def show_config_dialog(e):
@@ -437,7 +446,7 @@ def _main_logic(page: ft.Page):
         config_dialog.open = True
         page.update()
 
-    config_btn = ft.ElevatedButton("配置", on_click=show_config_dialog)
+    config_btn = ft.Button(text="配置", on_click=show_config_dialog)
 
     # Layout
     header = ft.Row(
