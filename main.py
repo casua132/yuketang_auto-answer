@@ -192,7 +192,7 @@ def _main_logic(page: ft.Page):
             if ctx.is_active:
                 # Stop
                 ctx.is_active = False
-                e.control.text = "启动"
+                e.control.content.value = "启动"
                 e.control.disabled = False # In original it disables then enables.
                 if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
                     try:
@@ -203,7 +203,7 @@ def _main_logic(page: ft.Page):
             else:
                 # Start
                 ctx.is_active = True
-                e.control.text = "取消监听"
+                e.control.content.value = "取消监听"
                 monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
                 monitor_thread.start()
                 if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
@@ -221,7 +221,7 @@ def _main_logic(page: ft.Page):
             add_log(f"启动/停止失败: {ex}")
 
     # Use the unified Button class in Flet 0.80+ instead of deprecated ElevatedButton
-    active_btn = ft.Button(text="启动", on_click=toggle_active)
+    active_btn = ft.Button(content=ft.Text("启动"), on_click=toggle_active)
     
     # Login Logic
     def show_login_dialog(e=None):
@@ -357,7 +357,7 @@ def _main_logic(page: ft.Page):
             login_btn.text = "登录"
             return False
 
-    login_btn = ft.Button(text="登录", on_click=show_login_dialog)
+    login_btn = ft.Button(content=ft.Text("登录"), on_click=show_login_dialog)
     
     # Config Dialog
     def show_config_dialog(e):
@@ -446,7 +446,7 @@ def _main_logic(page: ft.Page):
         config_dialog.open = True
         page.update()
 
-    config_btn = ft.Button(text="配置", on_click=show_config_dialog)
+    config_btn = ft.Button(content=ft.Text("配置"), on_click=show_config_dialog)
 
     # Layout
     header = ft.Row(
