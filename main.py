@@ -59,7 +59,7 @@ def _main_logic(page: ft.Page):
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     qr_container = ft.Container(
         content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
-        width=200, height=200, alignment=ft.alignment.CENTER
+        width=200, height=200, alignment=ft.Alignment.CENTER
     )
     login_status_text = ft.Text("")
     
