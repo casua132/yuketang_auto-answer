@@ -188,33 +188,37 @@ def _main_logic(page: ft.Page):
     )
 
     def toggle_active(e):
-        if ctx.is_active:
-            # Stop
-            ctx.is_active = False
-            active_btn.text = "启动"
-            active_btn.disabled = False # In original it disables then enables.
-            if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-                try:
-                    page.run_task(wakelock_video.pause)
-                except Exception:
-                    pass
-            add_log("停止监听")
-        else:
-            # Start
-            ctx.is_active = True
-            active_btn.text = "停止监听"
-            monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
-            monitor_thread.start()
-            if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-                try:
-                    page.run_task(wakelock_video.play)
-                except Exception:
-                    pass
-            add_log("启动监听 (已启用屏幕常亮)")
+        try:
+            if ctx.is_active:
+                # Stop
+                ctx.is_active = False
+                active_btn.text = "启动"
+                active_btn.disabled = False # In original it disables then enables.
+                if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
+                    try:
+                        page.run_task(wakelock_video.pause)
+                    except Exception:
+                        pass
+                add_log("停止监听")
+            else:
+                # Start
+                ctx.is_active = True
+                active_btn.text = "停止监听"
+                monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
+                monitor_thread.start()
+                if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
+                    try:
+                        page.run_task(wakelock_video.play)
+                    except Exception:
+                        pass
+                add_log("启动监听 (已启用屏幕常亮)")
 
-        # Explicitly update the button directly to ensure the UI paints immediately
-        active_btn.update()
-        page.update()
+            # Explicitly update the button directly to ensure the UI paints immediately
+            active_btn.update()
+            page.update()
+        except Exception as ex:
+            print(f"Error in toggle_active: {ex}")
+            add_log(f"启动/停止失败: {ex}")
 
     active_btn = ft.ElevatedButton("启动", on_click=toggle_active)
     
@@ -261,12 +265,17 @@ def _main_logic(page: ft.Page):
                 try:
                     import base64
 
-                    # Create a session with trust_env=False to completely bypass environment proxy settings
-                    # This prevents "Unable to determine SOCKS version" crashes if the user has socks:// proxies.
-                    s = requests.Session()
-                    s.trust_env = False
+                    # Instead of bypassing proxy entirely which breaks DNS on some machines,
+                    # we use the standard requests.get but let the system decide or gracefully fail
+                    # updating the UI instead of silently locking on "正在获取二维码...".
+                    try:
+                        img_resp = requests.get(url=data["ticket"], timeout=10)
+                    except requests.exceptions.RequestException as e:
+                        login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
+                        login_status_text.update()
+                        print(f"QR Download Error: {e}")
+                        return
 
-                    img_resp = s.get(url=data["ticket"])
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
                     # Replace the entire Image control to force Flutter to dump the cached render paint
                     qr_container.content = ft.Image(src=f"data:image/png;base64,{b64_img}", width=200, height=200)
@@ -277,6 +286,8 @@ def _main_logic(page: ft.Page):
                     login_status_text.update()
                     page.update()
                 except Exception as ex:
+                    login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
+                    login_status_text.update()
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
