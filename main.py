@@ -59,7 +59,7 @@ def _main_logic(page: ft.Page):
     TRANSPARENT_PIXEL_B64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     qr_container = ft.Container(
         content=ft.Image(src=f"data:image/png;base64,{TRANSPARENT_PIXEL_B64}", width=200, height=200),
-        width=200, height=200, alignment=ft.Alignment.CENTER
+        width=200, height=200, alignment=ft.alignment.CENTER
     )
     login_status_text = ft.Text("")
     
@@ -121,16 +121,6 @@ def _main_logic(page: ft.Page):
     
     # Helper to load config
     def load_config():
-        try:
-            if page.client_storage.contains_key("config"):
-                data = page.client_storage.get("config")
-                add_log("配置已从本地存储加载")
-                default_data = get_initial_data()
-                default_data.update(data)
-                return default_data
-        except Exception as e:
-            add_log(f"本地存储读取失败: {e}")
-
         dir_route = get_config_dir()
         config_route = get_config_path()
         
@@ -158,11 +148,6 @@ def _main_logic(page: ft.Page):
         return data
 
     def save_config_data(config):
-        try:
-            page.client_storage.set("config", config)
-        except Exception as e:
-            add_log(f"保存配置到本地存储失败: {e}")
-
         # Save explicitly to native file storage.
         try:
             dir_route = get_config_dir()
@@ -208,7 +193,7 @@ def _main_logic(page: ft.Page):
             ctx.is_active = False
             active_btn.text = "启动"
             active_btn.disabled = False # In original it disables then enables.
-            wakelock_video.pause()
+            page.run_task(wakelock_video.pause)
             add_log("停止监听")
         else:
             # Start
@@ -216,7 +201,7 @@ def _main_logic(page: ft.Page):
             active_btn.text = "停止监听"
             monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
             monitor_thread.start()
-            wakelock_video.play()
+            page.run_task(wakelock_video.play)
             add_log("启动监听 (已启用屏幕常亮)")
 
         # Explicitly update the button directly to ensure the UI paints immediately
@@ -316,7 +301,12 @@ def _main_logic(page: ft.Page):
                     page.update()
 
         ws_app = websocket.WebSocketApp(url=login_wss_url, on_open=on_open, on_message=on_message)
-        ws_app.run_forever()
+        try:
+            # We explicitly disable proxies for the websocket to prevent SOCKS dependency crashes
+            ws_app.run_forever(http_proxy_host=None, http_proxy_port=None)
+        except Exception as e:
+            login_status_text.value = f"网络连接失败 (可能需关闭代理): {e}"
+            login_status_text.update()
 
     def check_login_status():
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
@@ -475,4 +465,4 @@ def _main_logic(page: ft.Page):
         
     add_log("初始化完成")
 
-ft.app(main, assets_dir="assets")
+ft.run(main, assets_dir="assets")
