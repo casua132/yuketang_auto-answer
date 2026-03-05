@@ -1,9 +1,7 @@
-flet==0.28.3
+flet==0.81.0
 requests
 websocket-client
 python-dotenv
-flet-audio==0.1.0
-flet-video==0.1.1
-chardet==5.2.0
-urllib3==2.6.1
-charset_normalizer==3.4.4
+PySocks
+flet-audio==0.81.0
+flet-video==0.81.0

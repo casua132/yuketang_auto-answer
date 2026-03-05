@@ -30,7 +30,7 @@ To build a standalone APK, you need to install `flet` and set up the Flutter env
     ```bash
     flet build apk --project android_app
     ```
-    (Note: This requires a properly set up Flutter environment. Refer to Flet documentation for details).
+    (Note: This requires a properly set up Flutter environment(Currently, 3.41.2 Flutter Version has passed, we recommend this version). Refer to Flet documentation for details).s
 
 ## Features
 
