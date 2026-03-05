@@ -180,42 +180,54 @@ def _main_logic(page: ft.Page):
         pause_upon_entering_background_mode=False,
         width=1,
         height=1,
-        visible=True,
-        opacity=0.05
+        visible=False # Initially invisible, though visibility might affect playing on some platforms
     )
+    # Note: Flet Video might need to be visible to play?
+    # Usually visibility=False stops rendering.
+    # We'll set opacity to 0 instead of visible=False if needed, but let's try visible first.
+    # Actually, let's keep it visible but tiny.
+    wakelock_video.visible = True
+    wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
+
+    # Audio control for better backgrounding support
+    # Volume set to minimal non-zero value because some Android versions pause 0-volume streams
+    wakelock_audio = ft_audio.Audio(
+        src="silence.mp3",
+        autoplay=False,
+        volume=0.01,
+        balance=0,
+        release_mode="loop",
+    )
+    page.overlay.append(wakelock_audio)
 
     def toggle_active(e):
-        try:
-            if ctx.is_active:
-                # Stop
-                ctx.is_active = False
-                e.control.content.value = "启动"
-                e.control.disabled = False # In original it disables then enables.
-                if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-                    try:
-                        page.run_task(wakelock_video.pause)
-                    except Exception:
-                        pass
-                add_log("停止监听")
-            else:
-                # Start
-                ctx.is_active = True
-                e.control.content.value = "取消监听"
-                monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
-                monitor_thread.start()
-                if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-                    try:
-                        page.run_task(wakelock_video.play)
-                    except Exception:
-                        pass
-                add_log("启动监听 (已启用屏幕常亮)")
+        if ctx.is_active:
+            # Stop
+            ctx.is_active = False
+            e.control.content.value = "启动"
+            e.control.disabled = False # In original it disables then enables.
+            try:
+                wakelock_video.pause()
+                wakelock_audio.pause()
+            except Exception:
+                pass
+            add_log("停止监听")
+        else:
+            # Start
+            ctx.is_active = True
+            e.control.content.value = "取消监听"
+            monitor_thread = threading.Thread(target=monitor, args=(ctx,), daemon=True)
+            monitor_thread.start()
+            try:
+                wakelock_video.play()
+                wakelock_audio.play()
+            except Exception:
+                pass
+            add_log("启动监听 (已启用屏幕常亮)")
 
-            # Explicitly update the button directly from the event target to ensure the UI paints immediately
-            e.control.update()
-            page.update()
-        except Exception as ex:
-            print(f"Error in toggle_active: {ex}")
-            add_log(f"启动/停止失败: {ex}")
+        # Explicitly update the button directly from the event target to ensure the UI paints immediately
+        e.control.update()
+        page.update()
 
     # Use the unified Button class in Flet 0.80+ instead of deprecated ElevatedButton
     active_btn = ft.Button(content=ft.Text("启动"), on_click=toggle_active)
@@ -253,29 +265,27 @@ def _main_logic(page: ft.Page):
         ws_app = None
         
         def on_open(ws):
-            page.run_task(lambda: add_log("WebSocket 已连接，正在请求登录二维码..."))
+            add_log("WebSocket 已连接，正在请求登录二维码...")
             data={"op":"requestlogin","role":"web","version":1.4,"type":"qrcode","from":"web"}
             ws.send(json.dumps(data))
             
         def on_error(ws, error):
             err_msg = f"WebSocket 错误: {error}"
             print(err_msg)
-            page.run_task(lambda: add_log(err_msg))
+            add_log(err_msg)
 
-            def _show_ws_err():
-                login_status_text.value = err_msg[:50]
-                login_status_text.update()
-                login_dialog_ref.update()
-                page.update()
-            page.run_task(_show_ws_err)
+            login_status_text.value = err_msg[:50]
+            login_status_text.update()
+            login_dialog_ref.update()
+            page.update()
 
         def on_close(ws, close_status_code, close_msg):
-            page.run_task(lambda: add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}"))
+            add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}")
 
         def on_message(ws, message):
             data = dict_result(message)
             if data["op"] == "requestlogin":
-                page.run_task(lambda: add_log("接收到 requestlogin 事件，开始下载二维码..."))
+                add_log("接收到 requestlogin 事件，开始下载二维码...")
                 # Get QR Code image
                 try:
                     import base64
@@ -284,47 +294,36 @@ def _main_logic(page: ft.Page):
                     # we use the standard requests.get but let the system decide or gracefully fail
                     # updating the UI instead of silently locking on "正在获取二维码...".
                     try:
-                        img_resp = requests.get(url=data["ticket"], timeout=10)
-                        page.run_task(lambda: add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}"))
+                        img_resp = requests.get(url=data["ticket"], proxies={"http": None,"https":None}, timeout=10)
+                        add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}")
                     except requests.exceptions.RequestException as e:
-                        def _update_net_err():
-                            login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
-                            page.update()
-                            add_log(f"二维码图片下载失败: {e}")
-                        page.run_task(_update_net_err)
+                        login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
+                        page.update()
+                        add_log(f"二维码图片下载失败: {e}")
                         print(f"QR Download Error: {e}")
                         return
 
                     b64_img = base64.b64encode(img_resp.content).decode('utf-8')
 
-                    import time
+                    # The absolute simplest way to force Flutter to render the new Image memory buffer
+                    # from a background thread is to apply the data and explicitly update the entire overlay modal tree.
+                    # Flet 0.81 explicitly requires mapping base64 payload into the src attribute as a data URI.
+                    qr_image.src = f"data:image/png;base64,{b64_img}"
+                    login_status_text.value = "请扫码"
 
-                    # Explicitly update the components to force the engine to repaint the dirty nodes
-                    # login_dialog_ref MUST be updated to invalidate the AlertDialog render box in Flutter.
-                    def _update_ui():
-                        # The user pointed out Flet loses repaint signals when called from raw Python threads.
-                        # We must map this update explicitly back to the Flet event loop.
-                        qr_image.src_base64 = b64_img
-                        # Assigning a unique key forces Flutter to completely unmount and rebuild the Image widget
-                        # rather than trying to perform an in-place property mutation which often gets cached and frozen.
-                        qr_image.key = str(time.time())
-                        login_status_text.value = "请扫码"
-                        qr_image.update()
-                        login_status_text.update()
-                        login_dialog_ref.update()
-                        page.update()
-                        add_log("二维码渲染指令已推送到 Flet 前端。")
+                    # Push updates synchronously
+                    qr_image.update()
+                    login_status_text.update()
+                    login_dialog_ref.update()
+                    page.update()
 
-                    # Schedule the visual update safely on the main thread
-                    page.run_task(_update_ui)
+                    add_log("二维码渲染指令已推送到 Flet 前端。")
                 except Exception as ex:
-                    def _update_err():
-                        login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
-                        login_status_text.update()
-                        login_dialog_ref.update()
-                        page.update()
-                        add_log(f"处理二维码异常: {ex}")
-                    page.run_task(_update_err)
+                    login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
+                    login_status_text.update()
+                    login_dialog_ref.update()
+                    page.update()
+                    add_log(f"处理二维码异常: {ex}")
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
@@ -378,13 +377,11 @@ def _main_logic(page: ft.Page):
             # Ensure ping_interval is set so it doesn't silently hang on bad networks
             ws_app.run_forever(http_proxy_host=None, http_proxy_port=None, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            def _show_outer_err():
-                login_status_text.value = f"网络连接异常: {e}"
-                login_status_text.update()
-                login_dialog_ref.update()
-                page.update()
-                add_log(f"WebSocket 运行异常: {e}")
-            page.run_task(_show_outer_err)
+            login_status_text.value = f"网络连接异常: {e}"
+            login_status_text.update()
+            login_dialog_ref.update()
+            page.update()
+            add_log(f"WebSocket 运行异常: {e}")
 
     def check_login_status():
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
@@ -525,15 +522,15 @@ def _main_logic(page: ft.Page):
                             content=log_list_view,
                             border=ft.Border(top=ft.BorderSide(1, ft.Colors.GREY_300), bottom=ft.BorderSide(1, ft.Colors.GREY_300), left=ft.BorderSide(1, ft.Colors.GREY_300), right=ft.BorderSide(1, ft.Colors.GREY_300)),
                             border_radius=5,
-                            height=400, # Strict height instead of expand=True to avoid Flutter crash
+                        expand=True,
                             padding=5,
                             bgcolor=ft.Colors.GREY_100
                         ),
                         wakelock_video
                     ]
                 ),
-                padding=10
-                # Removing all expand=True from parent containers to prevent bounds errors
+            padding=10,
+            expand=True
             )
         )
     )
