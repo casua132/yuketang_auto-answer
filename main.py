@@ -253,29 +253,27 @@ def _main_logic(page: ft.Page):
         ws_app = None
         
         def on_open(ws):
-            page.run_task(lambda: add_log("WebSocket 已连接，正在请求登录二维码..."))
+            add_log("WebSocket 已连接，正在请求登录二维码...")
             data={"op":"requestlogin","role":"web","version":1.4,"type":"qrcode","from":"web"}
             ws.send(json.dumps(data))
             
         def on_error(ws, error):
             err_msg = f"WebSocket 错误: {error}"
             print(err_msg)
-            page.run_task(lambda: add_log(err_msg))
+            add_log(err_msg)
 
-            def _show_ws_err():
-                login_status_text.value = err_msg[:50]
-                login_status_text.update()
-                login_dialog_ref.update()
-                page.update()
-            page.run_task(_show_ws_err)
+            login_status_text.value = err_msg[:50]
+            login_status_text.update()
+            login_dialog_ref.update()
+            page.update()
 
         def on_close(ws, close_status_code, close_msg):
-            page.run_task(lambda: add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}"))
+            add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}")
 
         def on_message(ws, message):
             data = dict_result(message)
             if data["op"] == "requestlogin":
-                page.run_task(lambda: add_log("接收到 requestlogin 事件，开始下载二维码..."))
+                add_log("接收到 requestlogin 事件，开始下载二维码...")
                 # Get QR Code image
                 try:
                     import base64
@@ -285,13 +283,11 @@ def _main_logic(page: ft.Page):
                     # updating the UI instead of silently locking on "正在获取二维码...".
                     try:
                         img_resp = requests.get(url=data["ticket"], timeout=10)
-                        page.run_task(lambda: add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}"))
+                        add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}")
                     except requests.exceptions.RequestException as e:
-                        def _update_net_err():
-                            login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
-                            page.update()
-                            add_log(f"二维码图片下载失败: {e}")
-                        page.run_task(_update_net_err)
+                        login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
+                        page.update()
+                        add_log(f"二维码图片下载失败: {e}")
                         print(f"QR Download Error: {e}")
                         return
 
@@ -301,30 +297,24 @@ def _main_logic(page: ft.Page):
 
                     # Explicitly update the components to force the engine to repaint the dirty nodes
                     # login_dialog_ref MUST be updated to invalidate the AlertDialog render box in Flutter.
-                    def _update_ui():
-                        # The user pointed out Flet loses repaint signals when called from raw Python threads.
-                        # We must map this update explicitly back to the Flet event loop.
-                        qr_image.src_base64 = b64_img
-                        # Assigning a unique key forces Flutter to completely unmount and rebuild the Image widget
-                        # rather than trying to perform an in-place property mutation which often gets cached and frozen.
-                        qr_image.key = str(time.time())
-                        login_status_text.value = "请扫码"
-                        qr_image.update()
-                        login_status_text.update()
-                        login_dialog_ref.update()
-                        page.update()
-                        add_log("二维码渲染指令已推送到 Flet 前端。")
-
-                    # Schedule the visual update safely on the main thread
-                    page.run_task(_update_ui)
+                    # The user pointed out Flet loses repaint signals when called from raw Python threads.
+                    # We must map this update explicitly back to the Flet event loop.
+                    qr_image.src_base64 = b64_img
+                    # Assigning a unique key forces Flutter to completely unmount and rebuild the Image widget
+                    # rather than trying to perform an in-place property mutation which often gets cached and frozen.
+                    qr_image.key = str(time.time())
+                    login_status_text.value = "请扫码"
+                    qr_image.update()
+                    login_status_text.update()
+                    login_dialog_ref.update()
+                    page.update()
+                    add_log("二维码渲染指令已推送到 Flet 前端。")
                 except Exception as ex:
-                    def _update_err():
-                        login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
-                        login_status_text.update()
-                        login_dialog_ref.update()
-                        page.update()
-                        add_log(f"处理二维码异常: {ex}")
-                    page.run_task(_update_err)
+                    login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
+                    login_status_text.update()
+                    login_dialog_ref.update()
+                    page.update()
+                    add_log(f"处理二维码异常: {ex}")
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
@@ -378,13 +368,11 @@ def _main_logic(page: ft.Page):
             # Ensure ping_interval is set so it doesn't silently hang on bad networks
             ws_app.run_forever(http_proxy_host=None, http_proxy_port=None, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            def _show_outer_err():
-                login_status_text.value = f"网络连接异常: {e}"
-                login_status_text.update()
-                login_dialog_ref.update()
-                page.update()
-                add_log(f"WebSocket 运行异常: {e}")
-            page.run_task(_show_outer_err)
+            login_status_text.value = f"网络连接异常: {e}"
+            login_status_text.update()
+            login_dialog_ref.update()
+            page.update()
+            add_log(f"WebSocket 运行异常: {e}")
 
     def check_login_status():
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
