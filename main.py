@@ -65,51 +65,57 @@ def _main_logic(page: ft.Page):
     
     def add_log(message, type=0):
         # type is used for audio in original code, ignoring for now or just log it
-        timestamp = time.strftime("[%Y-%m-%d %H:%M:%S] ")
-        log_messages.append(f"{timestamp}{message}")
-        log_list_view.controls.append(ft.Text(f"{timestamp}{message}", size=12, selectable=True))
-        page.update()
+        async def _update_log():
+            timestamp = time.strftime("[%Y-%m-%d %H:%M:%S] ")
+            log_messages.append(f"{timestamp}{message}")
+            log_list_view.controls.append(ft.Text(f"{timestamp}{message}", size=12, selectable=True))
+            page.update()
+        page.run_task(_update_log)
 
     def add_course(row, index):
         # row: [lessonname, title, teacher, time_str, lessonid]
-        # We store the full row data including ID
-        course_data_rows.append(row)
-        
-        # Display only first 4 columns
-        display_row = row[:4]
-        
-        course_table.rows.append(
-            ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text(str(r))) for r in display_row
-                ],
-                data=row[4] if len(row) > 4 else None # Store lessonid in DataRow.data
-            )
-        )
-        ctx.course_count = len(course_table.rows)
-        page.update()
-        
-    def del_course(lessonid):
-        # Remove by lessonid
-        to_remove_idx = -1
-        for i, r in enumerate(course_table.rows):
-            if r.data == lessonid:
-                to_remove_idx = i
-                break
-        
-        if to_remove_idx != -1:
-            course_table.rows.pop(to_remove_idx)
-            # Also remove from data rows if we want to keep them synced
-            # Finding the data row might be tricky without ID, but we only use it for display
-            # We can just ignore course_data_rows sync if it's not used elsewhere.
-            # But let's try to keep it clean.
-            for i, d in enumerate(course_data_rows):
-                 if len(d) > 4 and d[4] == lessonid:
-                     course_data_rows.pop(i)
-                     break
+        async def _update_course():
+            # We store the full row data including ID
+            course_data_rows.append(row)
 
+            # Display only first 4 columns
+            display_row = row[:4]
+
+            course_table.rows.append(
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(str(r))) for r in display_row
+                    ],
+                    data=row[4] if len(row) > 4 else None # Store lessonid in DataRow.data
+                )
+            )
             ctx.course_count = len(course_table.rows)
             page.update()
+        page.run_task(_update_course)
+
+    def del_course(lessonid):
+        async def _del_course():
+            # Remove by lessonid
+            to_remove_idx = -1
+            for i, r in enumerate(course_table.rows):
+                if r.data == lessonid:
+                    to_remove_idx = i
+                    break
+
+            if to_remove_idx != -1:
+                course_table.rows.pop(to_remove_idx)
+                # Also remove from data rows if we want to keep them synced
+                # Finding the data row might be tricky without ID, but we only use it for display
+                # We can just ignore course_data_rows sync if it's not used elsewhere.
+                # But let's try to keep it clean.
+                for i, d in enumerate(course_data_rows):
+                     if len(d) > 4 and d[4] == lessonid:
+                         course_data_rows.pop(i)
+                         break
+
+                ctx.course_count = len(course_table.rows)
+                page.update()
+        page.run_task(_del_course)
 
     # Wire up context
     ctx.on_message = add_log
