@@ -259,9 +259,9 @@ def _main_logic(page: ft.Page):
         ws_app = None
         
         def on_open(ws):
-            async def _open_task():
-                add_log("WebSocket 已连接，正在请求登录二维码...")
-            page.run_task(_open_task)
+            #async def _open_task():
+            #   add_log("WebSocket 已连接，正在请求登录二维码...")
+            #page.run_task(_open_task)
             data={"op":"requestlogin","role":"web","version":1.4,"type":"qrcode","from":"web"}
             ws.send(json.dumps(data))
             
@@ -285,9 +285,9 @@ def _main_logic(page: ft.Page):
         def on_message(ws, message):
             data = dict_result(message)
             if data["op"] == "requestlogin":
-                async def _download_task():
-                    add_log("接收到 requestlogin 事件，开始下载二维码...")
-                page.run_task(_download_task)
+                #async def _download_task():
+                #    add_log("接收到 requestlogin 事件，开始下载二维码...")
+                #page.run_task(_download_task)
                 # Get QR Code image
                 try:
                     import base64
@@ -297,9 +297,9 @@ def _main_logic(page: ft.Page):
                     # updating the UI instead of silently locking on "正在获取二维码...".
                     try:
                         img_resp = requests.get(url=data["ticket"], timeout=10)
-                        async def _dl_success_task():
-                            add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}")
-                        page.run_task(_dl_success_task)
+                        #async def _dl_success_task():
+                        #    add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}")
+                        #page.run_task(_dl_success_task)
                     except requests.exceptions.RequestException as e:
                         async def _update_net_err():
                             login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
@@ -329,7 +329,7 @@ def _main_logic(page: ft.Page):
                         login_status_text.update()
                         login_dialog_ref.update()
                         page.update()
-                        add_log("二维码渲染指令已推送到 Flet 前端。")
+                        #add_log("二维码渲染指令已推送到 Flet 前端。")
 
                     # Schedule the visual update safely on the main thread
                     page.run_task(_update_ui)
