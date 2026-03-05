@@ -253,27 +253,35 @@ def _main_logic(page: ft.Page):
         ws_app = None
         
         def on_open(ws):
-            add_log("WebSocket 已连接，正在请求登录二维码...")
+            async def _open_task():
+                add_log("WebSocket 已连接，正在请求登录二维码...")
+            page.run_task(_open_task)
             data={"op":"requestlogin","role":"web","version":1.4,"type":"qrcode","from":"web"}
             ws.send(json.dumps(data))
             
         def on_error(ws, error):
             err_msg = f"WebSocket 错误: {error}"
             print(err_msg)
-            add_log(err_msg)
 
-            login_status_text.value = err_msg[:50]
-            login_status_text.update()
-            login_dialog_ref.update()
-            page.update()
+            async def _show_ws_err():
+                add_log(err_msg)
+                login_status_text.value = err_msg[:50]
+                login_status_text.update()
+                login_dialog_ref.update()
+                page.update()
+            page.run_task(_show_ws_err)
 
         def on_close(ws, close_status_code, close_msg):
-            add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}")
+            async def _close_task():
+                add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}")
+            page.run_task(_close_task)
 
         def on_message(ws, message):
             data = dict_result(message)
             if data["op"] == "requestlogin":
-                add_log("接收到 requestlogin 事件，开始下载二维码...")
+                async def _download_task():
+                    add_log("接收到 requestlogin 事件，开始下载二维码...")
+                page.run_task(_download_task)
                 # Get QR Code image
                 try:
                     import base64
@@ -283,11 +291,17 @@ def _main_logic(page: ft.Page):
                     # updating the UI instead of silently locking on "正在获取二维码...".
                     try:
                         img_resp = requests.get(url=data["ticket"], timeout=10)
-                        add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}")
+                        async def _dl_success_task():
+                            add_log(f"二维码图片下载成功，字节大小: {len(img_resp.content)}")
+                        page.run_task(_dl_success_task)
                     except requests.exceptions.RequestException as e:
-                        login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
-                        page.update()
-                        add_log(f"二维码图片下载失败: {e}")
+                        async def _update_net_err():
+                            login_status_text.value = f"网络/DNS错误 (获取二维码失败)"
+                            login_status_text.update()
+                            login_dialog_ref.update()
+                            page.update()
+                            add_log(f"二维码图片下载失败: {e}")
+                        page.run_task(_update_net_err)
                         print(f"QR Download Error: {e}")
                         return
 
@@ -297,30 +311,38 @@ def _main_logic(page: ft.Page):
 
                     # Explicitly update the components to force the engine to repaint the dirty nodes
                     # login_dialog_ref MUST be updated to invalidate the AlertDialog render box in Flutter.
-                    # The user pointed out Flet loses repaint signals when called from raw Python threads.
-                    # We must map this update explicitly back to the Flet event loop.
-                    qr_image.src_base64 = b64_img
-                    # Assigning a unique key forces Flutter to completely unmount and rebuild the Image widget
-                    # rather than trying to perform an in-place property mutation which often gets cached and frozen.
-                    qr_image.key = str(time.time())
-                    login_status_text.value = "请扫码"
-                    qr_image.update()
-                    login_status_text.update()
-                    login_dialog_ref.update()
-                    page.update()
-                    add_log("二维码渲染指令已推送到 Flet 前端。")
+                    async def _update_ui():
+                        # The user pointed out Flet loses repaint signals when called from raw Python threads.
+                        # We must map this update explicitly back to the Flet event loop.
+                        qr_image.src_base64 = b64_img
+                        # Assigning a unique key forces Flutter to completely unmount and rebuild the Image widget
+                        # rather than trying to perform an in-place property mutation which often gets cached and frozen.
+                        qr_image.key = str(time.time())
+                        login_status_text.value = "请扫码"
+                        qr_image.update()
+                        login_status_text.update()
+                        login_dialog_ref.update()
+                        page.update()
+                        add_log("二维码渲染指令已推送到 Flet 前端。")
+
+                    # Schedule the visual update safely on the main thread
+                    page.run_task(_update_ui)
                 except Exception as ex:
-                    login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
-                    login_status_text.update()
-                    login_dialog_ref.update()
-                    page.update()
-                    add_log(f"处理二维码异常: {ex}")
+                    async def _update_err():
+                        login_status_text.value = f"获取二维码异常: {str(ex)[:20]}"
+                        login_status_text.update()
+                        login_dialog_ref.update()
+                        page.update()
+                        add_log(f"处理二维码异常: {ex}")
+                    page.run_task(_update_err)
                     print(ex)
             elif data["op"] == "loginsuccess":
                 # Login Success
-                login_status_text.value = "扫码成功，正在登录..."
-                login_status_text.update()
-                login_dialog_ref.update()
+                async def _login_suc_msg():
+                    login_status_text.value = "扫码成功，正在登录..."
+                    login_status_text.update()
+                    login_dialog_ref.update()
+                page.run_task(_login_suc_msg)
                 
                 web_login_url = "https://www.yuketang.cn/pc/web_login"
                 login_data = {
@@ -338,23 +360,27 @@ def _main_logic(page: ft.Page):
                     # Save config
                     save_config_data(ctx.config)
                         
-                    login_status_text.value = "登录成功！"
-                    login_dialog_ref.update()
-                    page.update()
-                    time.sleep(1)
-                    login_dialog_ref.open = False
-                    login_dialog_ref.update()
-                    page.update()
+                    async def _success_ui():
+                        login_status_text.value = "登录成功！"
+                        login_dialog_ref.update()
+                        page.update()
+                        time.sleep(1)
+                        login_dialog_ref.open = False
+                        login_dialog_ref.update()
+                        page.update()
+
+                        # Refresh User Info
+                        check_login_status()
+                    page.run_task(_success_ui)
                     ws.close()
                     
-                    # Refresh User Info
-                    check_login_status()
-                    
                 except Exception as e:
-                    login_status_text.value = f"登录失败: {e}"
-                    login_status_text.update()
-                    login_dialog_ref.update()
-                    page.update()
+                    async def _login_fail_ui():
+                        login_status_text.value = f"登录失败: {e}"
+                        login_status_text.update()
+                        login_dialog_ref.update()
+                        page.update()
+                    page.run_task(_login_fail_ui)
 
         ws_app = websocket.WebSocketApp(
             url=login_wss_url,
@@ -368,11 +394,13 @@ def _main_logic(page: ft.Page):
             # Ensure ping_interval is set so it doesn't silently hang on bad networks
             ws_app.run_forever(http_proxy_host=None, http_proxy_port=None, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            login_status_text.value = f"网络连接异常: {e}"
-            login_status_text.update()
-            login_dialog_ref.update()
-            page.update()
-            add_log(f"WebSocket 运行异常: {e}")
+            async def _show_outer_err():
+                login_status_text.value = f"网络连接异常: {e}"
+                login_status_text.update()
+                login_dialog_ref.update()
+                page.update()
+                add_log(f"WebSocket 运行异常: {e}")
+            page.run_task(_show_outer_err)
 
     def check_login_status():
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
