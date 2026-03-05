@@ -367,19 +367,23 @@ def _main_logic(page: ft.Page):
                     save_config_data(ctx.config)
                         
                     async def _success_ui():
+                        import asyncio
                         login_status_text.value = "登录成功！"
                         login_dialog_ref.update()
                         page.update()
-                        time.sleep(1)
+                        await asyncio.sleep(1)
                         login_dialog_ref.open = False
                         login_dialog_ref.update()
                         page.update()
-
-                        # Refresh User Info
-                        check_login_status()
                     page.run_task(_success_ui)
                     ws.close()
                     
+                    # Refresh User Info after dialog is closed
+                    # Run this in the background thread (not Flet main loop)
+                    # to prevent blocking UI on get_user_info network call
+                    time.sleep(1)
+                    check_login_status()
+
                 except Exception as e:
                     async def _login_fail_ui():
                         login_status_text.value = f"登录失败: {e}"
@@ -412,17 +416,26 @@ def _main_logic(page: ft.Page):
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
             code, user_info = get_user_info(ctx.config["sessionid"])
             if code == 0:
-                login_btn.content.value = f"已登录: {user_info['name']}"
-                login_btn.update()
+                async def _update_login_btn_success():
+                    login_btn.content.value = f"已登录: {user_info['name']}"
+                    login_btn.content.update()
+                    login_btn.update()
+                page.run_task(_update_login_btn_success)
                 add_log(f"登录成功，当前用户: {user_info['name']}")
                 return True
             else:
-                login_btn.content.value = "登录"
-                login_btn.update()
+                async def _update_login_btn_fail():
+                    login_btn.content.value = "登录"
+                    login_btn.content.update()
+                    login_btn.update()
+                page.run_task(_update_login_btn_fail)
                 return False
         else:
-            login_btn.content.value = "登录"
-            login_btn.update()
+            async def _update_login_btn_none():
+                login_btn.content.value = "登录"
+                login_btn.content.update()
+                login_btn.update()
+            page.run_task(_update_login_btn_none)
             return False
 
     login_btn = ft.Button(content=ft.Text("登录"), on_click=show_login_dialog)
@@ -517,15 +530,21 @@ def _main_logic(page: ft.Page):
     config_btn = ft.Button(content=ft.Text("配置"), on_click=show_config_dialog)
 
     # Layout
-    header = ft.Row(
+    header = ft.Column(
         [
             ft.Text("摸鱼课堂 Mobile", size=20, weight=ft.FontWeight.BOLD),
-            active_btn,
-            login_btn,
-            config_btn
+            ft.Row(
+                [
+                    active_btn,
+                    login_btn,
+                    config_btn
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                wrap=True,
+                spacing=10
+            )
         ],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        scroll=ft.ScrollMode.ADAPTIVE
+        spacing=10
     )
 
     page.add(
