@@ -189,16 +189,10 @@ def _main_logic(page: ft.Page):
     wakelock_video.visible = True
     wakelock_video.opacity = 0.05 # Slightly higher opacity to prevent aggressive culling
 
-    # Audio control for better backgrounding support
-    # Volume set to minimal non-zero value because some Android versions pause 0-volume streams
-    wakelock_audio = ft_audio.Audio(
-        src="silence.mp3",
-        autoplay=False,
-        volume=0.01,
-        balance=0,
-        release_mode="loop",
-    )
-    page.overlay.append(wakelock_audio)
+    # REMOVED: `wakelock_audio` is fundamentally incompatible with Flet 0.81 Desktop builds
+    # and triggers an `Unknown control: Audio` fatal overlay error that breaks the Flutter rendering engine,
+    # causing UI updates (like QR codes and logs) to freeze until the window is manually clicked.
+    # `wakelock_video` is fully sufficient for screen keep-awake on Android.
 
     def toggle_active(e):
         if ctx.is_active:
@@ -208,7 +202,6 @@ def _main_logic(page: ft.Page):
             e.control.disabled = False # In original it disables then enables.
             try:
                 wakelock_video.pause()
-                wakelock_audio.pause()
             except Exception:
                 pass
             add_log("停止监听")
@@ -220,7 +213,6 @@ def _main_logic(page: ft.Page):
             monitor_thread.start()
             try:
                 wakelock_video.play()
-                wakelock_audio.play()
             except Exception:
                 pass
             add_log("启动监听 (已启用屏幕常亮)")
