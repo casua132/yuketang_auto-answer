@@ -314,7 +314,7 @@ def _main_logic(page: ft.Page):
                     async def _update_ui():
                         # The user pointed out Flet loses repaint signals when called from raw Python threads.
                         # We must map this update explicitly back to the Flet event loop.
-                        qr_image.src_base64 = b64_img
+                        qr_image.src = f"data:image/png;base64,{b64_img}"
                         # Assigning a unique key forces Flutter to completely unmount and rebuild the Image widget
                         # rather than trying to perform an in-place property mutation which often gets cached and frozen.
                         qr_image.key = str(time.time())
