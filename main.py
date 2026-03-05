@@ -378,18 +378,13 @@ def _main_logic(page: ft.Page):
                     page.run_task(_success_ui)
                     ws.close()
                     
-                    # Refresh User Info after dialog is closed
-                    # Run this in the background thread (not Flet main loop)
-                    # to prevent blocking UI on get_user_info network call
-                    time.sleep(1)
-                    check_login_status()
-
                 except Exception as e:
                     async def _login_fail_ui():
                         login_status_text.value = f"登录失败: {e}"
                         login_status_text.update()
                         login_dialog_ref.update()
                         page.update()
+                        add_log(f"登录异常: {e}")
                     page.run_task(_login_fail_ui)
 
         ws_app = websocket.WebSocketApp(
@@ -403,6 +398,10 @@ def _main_logic(page: ft.Page):
             # We explicitly disable proxies for the websocket to prevent SOCKS dependency crashes
             # Ensure ping_interval is set so it doesn't silently hang on bad networks
             ws_app.run_forever(http_proxy_host=None, http_proxy_port=None, ping_interval=10, ping_timeout=5)
+
+            # Refresh User Info after dialog is closed and ws is terminated
+            time.sleep(1)
+            check_login_status()
         except Exception as e:
             async def _show_outer_err():
                 login_status_text.value = f"网络连接异常: {e}"
