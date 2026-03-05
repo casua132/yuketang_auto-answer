@@ -257,6 +257,21 @@ def _main_logic(page: ft.Page):
             data={"op":"requestlogin","role":"web","version":1.4,"type":"qrcode","from":"web"}
             ws.send(json.dumps(data))
             
+        def on_error(ws, error):
+            err_msg = f"WebSocket 错误: {error}"
+            print(err_msg)
+            page.run_task(lambda: add_log(err_msg))
+
+            def _show_ws_err():
+                login_status_text.value = err_msg[:50]
+                login_status_text.update()
+                login_dialog_ref.update()
+                page.update()
+            page.run_task(_show_ws_err)
+
+        def on_close(ws, close_status_code, close_msg):
+            page.run_task(lambda: add_log(f"WebSocket 已关闭: {close_status_code} - {close_msg}"))
+
         def on_message(ws, message):
             data = dict_result(message)
             if data["op"] == "requestlogin":
@@ -347,15 +362,29 @@ def _main_logic(page: ft.Page):
                     
                 except Exception as e:
                     login_status_text.value = f"登录失败: {e}"
+                    login_status_text.update()
+                    login_dialog_ref.update()
                     page.update()
 
-        ws_app = websocket.WebSocketApp(url=login_wss_url, on_open=on_open, on_message=on_message)
+        ws_app = websocket.WebSocketApp(
+            url=login_wss_url,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close
+        )
         try:
             # We explicitly disable proxies for the websocket to prevent SOCKS dependency crashes
-            ws_app.run_forever(http_proxy_host=None, http_proxy_port=None)
+            # Ensure ping_interval is set so it doesn't silently hang on bad networks
+            ws_app.run_forever(http_proxy_host=None, http_proxy_port=None, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            login_status_text.value = f"网络连接失败 (可能需关闭代理): {e}"
-            login_status_text.update()
+            def _show_outer_err():
+                login_status_text.value = f"网络连接异常: {e}"
+                login_status_text.update()
+                login_dialog_ref.update()
+                page.update()
+                add_log(f"WebSocket 运行异常: {e}")
+            page.run_task(_show_outer_err)
 
     def check_login_status():
         if "sessionid" in ctx.config and ctx.config["sessionid"]:
