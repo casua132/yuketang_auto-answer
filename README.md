@@ -45,6 +45,8 @@
 
 当有课程开课，进入软件，点击监听即可启动自动答题。该应用会自动保持屏幕常亮，但是如果熄屏或进入后台就会断联(目前并没有找到解决方法，如果有欢迎提交更改), 推荐使用备用机或分屏使用。
 
+(注意：对于动态二维码签到课程，需要完成签到后才能使用本项目）
+
 ## 参考
 
 - 本项目基于[TrickyDeath/RainClassroomAssitant](https://github.com/TrickyDeath/RainClassroomAssitant)开发, 增加对新版雨课堂的支持与移动端的适配。
