@@ -17,8 +17,8 @@
 此处为基于源代码构建apk的方法：
 
 1.  ```bash
-    git clone https://github.com/casua132/RainClassroomAssistant_android.git
-    cd RainClassroomAssistant_android
+    git clone https://github.com/casua132/yuketang_auto-answer.git
+    cd yuketang_auto-answer
     python -m venv myenv
     source myenv/bin/activate
     pip install -r requirements.txt
