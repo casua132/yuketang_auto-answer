@@ -1,53 +1,54 @@
-# Rain Classroom Assistant (Android Version)
+# 雨课堂自动答题
 
-This project is a modified version of [TrickyDeath/RainClassroomAssitant](https://github.com/TrickyDeath/RainClassroomAssitant). Since the original project does not have a license, this repository is for personal study and backup purposes only. All rights of the core logic belong to the original author.
+支持大模型调用，雨课堂所有类型题目的自动作答
 
-# Project Description
+## 示例
 
-This is an Android-compatible version of the Rain Classroom Assistant. It uses [Flet](https://flet.dev/) for the UI and can be run on Android devices.
+<img width="1080" height="2354" alt="Weixin Image_20260509094235_4_9" src="https://github.com/user-attachments/assets/3fa58a70-76dc-4e07-809d-9305ea117d9d" />
 
-## How to Run
+## 特点
 
-~~### Method 1: Using Flet App on Android (Development)~~
+- **自定义时间**: 可以自定义回答时间，防止过早或过晚答题。
+- **大模型调用**：使用先进大模型，高效高准确率解决非题库题目，以及图文关联的难题。
+- **使用简单**: 配置完成后只须点击监听即可开始运行。
 
-~~1.  Install the **Flet** app from the Google Play Store (or App Store on iOS, though this is tailored for Android).~~
-~~2.  Ensure your Android device and PC are on the same network.~~
-~~3.  Run the server on your PC:~~
-    ```bash
-    flet run android_app/main.py --port 8550
+## 运行
+
+此处为基于源代码构建apk的方法：
+
+1.  ```bash
+    git clone https://github.com/casua132/RainClassroomAssistant_android.git
+    cd RainClassroomAssistant_android
+    python -m venv myenv
+    source myenv/bin/activate
+    pip install -r requirements.txt
     ```
-~~4.  Open the Flet app on Android and enter the URL shown in your terminal (usually `http://<your-pc-ip>:8550`).~~
 
-### Method 2: Build APK (Distribution)
-
-To build a standalone APK, you need to install `flet` and set up the Flutter environment (which Flet uses under the hood).
-
-1.  Install dependencies:
+2.  本项目基于flet, 首先下载:
     ```bash
     pip install flet
     ```
-2.  Run the build command:
+3.  Run the build command:
     ```bash
     flet build apk --project android_app
     ```
-    (Note: This requires a properly set up Flutter environment(Currently, 3.41.2 Flutter Version has passed, we recommend this version). Refer to Flet documentation for details).s
+    (注意：本项目需要 Flutter 环境 (目前，3.41.2 Flutter 版本已通过)，运行此命令会在终端提示下载flutter,请允许。详情请参阅 Flet 文档。).
+    (构建过程中可能会由于网络问题出现构建失败，可以科学上网后下载，或者自行进入flutter官网下载对应版本）
 
-## Features
+## 配置
 
--   **Mobile UI**: Redesigned interface for touch screens.
--   **Login**: Scan QR code to login via WeChat (same as desktop version).
--   **Auto-Answer**: Automatically answers questions using AI (requires API Key).
+本项目目前支持豆包大模型(火山引擎每个新用户有很多免费token, 课程不多的话基本一分钱不用花）(若更倾向其他大模型，请进入Scripts/Classes.py, 修改最后一个函数的提示词以及大模型调用方法，如果可以，请创建新的函数并提交修改，帮助本项目支持更多的模型厂家服务)
 
-## Configuration
+首先进入火山引擎，注册账号，并开启该项目使用的模型的服务(当前为doubao-seed-1-6-vision-250815,若期望更先进的模型，只需要在Scripts/Classes.py中修改'model'变量为对应模型的名称即可)，然后下载应用并打开后，进入配置，填入api,即可完成api配置。然后点击登录，会弹出二维码，请使用第二个手机扫码，或截图后分屏，保证软件没有进入后台，然后打开微信扫描登录，当出现："已登录：xxx"说明登录成功。
 
-The configuration is stored in the app's data directory. You can adjust settings via the "配置" (Config) button in the app.
+## 使用说明
 
-### API Key
+当有课程开课，进入软件，点击监听即可启动自动答题。该应用会自动保持屏幕常亮，但是如果熄屏或进入后台就会断联(目前并没有找到解决方法，如果有欢迎提交更改), 推荐使用备用机或分屏使用。
 
-To use the AI answering feature (Doubao model), you need to provide the `DOUBAO_API_KEY`.
-Currently, you may need to add it to a `.env` file in the working directory or modify the code to input it.
-(Note: The current implementation reads from environment variables. A future update will allow inputting it in the UI).
+## 参考
 
-## Credits
+- 本项目基于[TrickyDeath/RainClassroomAssitant](https://github.com/TrickyDeath/RainClassroomAssitant)开发, 增加对新版雨课堂的支持与移动端的适配。
 
-Based on the original RainClassroomAssistant project.
+## 声明
+
+- 本项目仅供学习和研究使用，开发者不对使用本脚本引起的任何后果负责。
