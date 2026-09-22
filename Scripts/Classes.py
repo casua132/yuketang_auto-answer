@@ -134,6 +134,9 @@ class Lesson:
         return problems
 
     def answer_questions(self,problemid,problemtype,answer,limit):
+        print("Answering problemtype:", problemtype)
+        print("problemid:", problemid)
+        print("Answer:", answer)
         # 回答问题
         answer_printed = answer
         if problemtype == 5:
@@ -176,7 +179,7 @@ class Lesson:
         wsapp.send(json.dumps(self.handshark))
 
     def checkin_class(self):
-        r = requests.post(url="https://www.yuketang.cn/api/v3/lesson/checkin",headers=self.headers,data=json.dumps({"source":5,"lessonId":self.lessonid}),proxies={"http": None,"https":None})
+        r = requests.post(url="https://www.yuketang.cn/api/v3/lesson/checkin",headers=self.headers,data=json.dumps({"source":21,"lessonId":self.lessonid, "joinIfNotIn": True}),proxies={"http": None,"https":None})
         set_auth = r.headers.get("Set-Auth",None)
         times = 1
         while not set_auth and times <= 3:
@@ -287,7 +290,7 @@ class Lesson:
                 #    for i in blanks:
                 #        answers.append(random.choice(i["answers"]))
                 #else:
-                answers = answer_through_gemini(promble)
+                answers = answer_through_gemini(promble, self)
                 threading.Thread(target=self.answer_questions,args=(promble["problemId"],promble["problemType"],answers,limit)).start()
                 break
         else:
@@ -374,17 +377,22 @@ class User:
         self.sno = data["school_number"]
         self.name = data["name"]
 
-def answer_through_gemini(promble):
+def answer_through_gemini(promble, lesson):
     """
     """
     global client
     if client is None:
         api_key = os.environ.get("DOUBAO_API_KEY")
+        model = os.environ.get("MODEL")
         if api_key:
             get_client(api_key)
         else:
             print("No API Key found in environment variables.")
             return None
+        if model==None:
+            meg="NO MODEL found, please set the model for auto-answer"
+            lesson.add_message(meg,3)
+
 
     print("Begin to deal with problems")
     print(promble)
@@ -416,7 +424,7 @@ def answer_through_gemini(promble):
 
     answers = []
 
-    model = "doubao-seed-1-6-vision-250815"
+    # model = "doubao-seed-2-0-mini-260428"
 
     if coverages:
         if options:

@@ -450,6 +450,7 @@ def _main_logic(page: ft.Page):
             ctx.config["auto_answer"] = cb_auto_answer.value
             ctx.config["audio_on"] = cb_audio_on.value
             ctx.config["doubao_api_key"] = tb_api_key.value
+            ctx.config["model"] = tb_model.value
             
             # Save answer delay config
             if "answer_config" not in ctx.config:
@@ -466,6 +467,11 @@ def _main_logic(page: ft.Page):
             # Update env var for immediate use
             if tb_api_key.value:
                 os.environ["DOUBAO_API_KEY"] = tb_api_key.value
+
+            if tb_model.value:
+                os.environ["MODEL"] = tb_model.value
+            else:
+                os.environ["MODEL"] = None
             
             save_config_data(ctx.config)
             
@@ -484,7 +490,8 @@ def _main_logic(page: ft.Page):
         cb_auto_danmu = ft.Checkbox(label="自动发弹幕", value=ctx.config.get("auto_danmu", True))
         cb_auto_answer = ft.Checkbox(label="自动答题", value=ctx.config.get("auto_answer", True))
         cb_audio_on = ft.Checkbox(label="语音提醒 (暂不可用)", value=ctx.config.get("audio_on", True))
-        
+
+        tb_model=ft.TextField(label="Model", value=ctx.config.get("model", "doubao-seed-2-0-mini-260428"), password=False, can_reveal_password=False) 
         tb_api_key = ft.TextField(label="Doubao API Key", value=ctx.config.get("doubao_api_key", ""), password=True, can_reveal_password=True)
 
         # Answer Delay Controls
@@ -511,6 +518,7 @@ def _main_logic(page: ft.Page):
                 cb_auto_answer,
                 cb_audio_on,
                 tb_api_key,
+                tb_model,
                 ft.Divider(),
                 ft.Text("答题延时设置:", weight=ft.FontWeight.BOLD),
                 rg_delay_type,
