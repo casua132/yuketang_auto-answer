@@ -1,6 +1,6 @@
 [project]
 name = "rain-classroom-assistant"
-version = "0.2.0"
+version = "0.2.1"
 description = "Rain Classroom Assistant Mobile App"
 authors = [
     {name = "Casual", email = "baidu2198@gmail.com"},
