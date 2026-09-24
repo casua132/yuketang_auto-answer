@@ -107,6 +107,8 @@ class Lesson:
     def _get_ppt(self,presentationid):
         # 获取课程各页ppt
         r = requests.get(url="https://www.yuketang.cn/api/v3/lesson/presentation/fetch?presentation_id=%s" % (presentationid),headers=self.headers,proxies={"http": None,"https":None})
+        # DEBUG: 临时诊断输出
+        print("[_get_ppt] presentation=%s http=%s body=%s" % (presentationid, r.status_code, r.text[:400]))
         return dict_result(r.text)["data"]
 
     def get_problems(self,presentationid):
@@ -115,7 +117,10 @@ class Lesson:
         #problem_slides = [problem for problem in data["slides"] if "problem" in problem.keys()]
         problems = []
 
-        for problem in data["slides"]: 
+        # DEBUG: 临时诊断输出
+        print("[get_problems] presentation=%s slides=%s keys=%s" % (presentationid, len(data.get("slides", [])), list(data.keys())))
+
+        for problem in data["slides"]:
             if "problem" in problem.keys():
                 problem["problem"]["cover"] = problem.get("cover")
                 problem["problem"]["coverAlt"] = problem.get("coverAlt")
@@ -197,8 +202,14 @@ class Lesson:
             current_presentation = data["presentation"]
             if current_presentation not in presentations:
                 presentations.append(current_presentation)
+            # DEBUG: 临时诊断输出
+            print("[hello] timeline=%s presentations=%s" % (len(data.get("timeline", [])), presentations))
             for presentationid in presentations:
-                self.problems_ls.extend(self.get_problems(presentationid))
+                try:
+                    self.problems_ls.extend(self.get_problems(presentationid))
+                except Exception as e:
+                    print("[hello] get_problems(%s) 失败: %r" % (presentationid, e))
+            print("[hello] problems_ls total=%s" % len(self.problems_ls))
             self.unlocked_problem = data["unlockedproblem"]
             for problemid in self.unlocked_problem:
                 self._current_problem(wsapp, problemid)
@@ -381,17 +392,18 @@ def answer_through_gemini(promble, lesson):
     """
     """
     global client
+    api_key = os.environ.get("DOUBAO_API_KEY")
+    model = os.environ.get("MODEL")
     if client is None:
-        api_key = os.environ.get("DOUBAO_API_KEY")
-        model = os.environ.get("MODEL")
         if api_key:
             get_client(api_key)
         else:
             print("No API Key found in environment variables.")
             return None
-        if model==None:
-            meg="NO MODEL found, please set the model for auto-answer"
-            lesson.add_message(meg,3)
+    if model==None:
+        meg="NO MODEL found, please set the model for auto-answer"
+        lesson.add_message(meg,3)
+        return None
 
 
     print("Begin to deal with problems")

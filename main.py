@@ -167,6 +167,9 @@ def _main_logic(page: ft.Page):
     # Init env var from config
     if "doubao_api_key" in ctx.config and ctx.config["doubao_api_key"]:
         os.environ["DOUBAO_API_KEY"] = ctx.config["doubao_api_key"]
+
+    if "model" in ctx.config and ctx.config["model"]:
+        os.environ["MODEL"] = ctx.config["model"]
     
     # Monitor Thread
     monitor_thread = None
